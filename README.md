@@ -71,15 +71,15 @@
 **تقویم شمسی، هجری و میلادی — اندروید، iOS و وب**
 اوقات شرعی و قبله‌نما · برنامه‌ریز روزانه · تبدیل سه‌طرفهٔ تاریخ · مناسبت‌های رسمی · کاملاً آفلاین
 
-`Android` `iOS/Swift` `Java` `React` `PWA` · [⬇️ دانلود APK v1.7.2](https://github.com/Matin-mohebi/TaqvimCod/releases/latest) · [🌐 تقویم وب (بدون نصب)](https://matin-mohebi.github.io/TaqvimCod/)
+`Android` `iOS/Swift` `Java` `React` `PWA` · [⬇️ دانلود APK v1.8.0](https://github.com/Matin-mohebi/TaqvimCod/releases/latest) · [🌐 تقویم وب (بدون نصب)](https://matin-mohebi.github.io/TaqvimCod/)
 
 <br/>
 
-### 🥷 [نینجا آراشی ۲: مسیر سایه‌ها](https://github.com/Matin-mohebi/ninja-arashi-2-apk)
-**پلتفرمر اکشن نینجا با سبک ظاهری سایه — HTML5 + اندروید**
+### 🥷 [NINJA](https://github.com/Matin-mohebi/ninja-arashi-2-apk)
+**پلتفرمر اکشن نینجا با موسیقی واقعی، ۴ مرحله و منوی سینمایی — HTML5 + اندروید**
 کاتانا · شوریکن · دَش سایه · مبدل · باس‌فایت · سیستم ارتقا · رابط فارسی
 
-`React 19` `Canvas 2D` `Capacitor 7` `TypeScript` · [⬇️ دانلود APK](https://github.com/Matin-mohebi/ninja-arashi-2-apk/releases/latest) · [▶️ بازی آنلاین](https://matin-mohebi.github.io/ninja-arashi-2-apk/)
+`React 19` `Canvas 2D` `Capacitor 7` `TypeScript` · [⬇️ دانلود APK v1.2.0](https://github.com/Matin-mohebi/ninja-arashi-2-apk/releases/latest) · [▶️ بازی آنلاین](https://matin-mohebi.github.io/ninja-arashi-2-apk/)
 
 </div>
 
