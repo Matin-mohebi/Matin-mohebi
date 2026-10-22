@@ -41,6 +41,28 @@
 
 ---
 
+## 🎨 نمونه‌کارهای طراحی سایت | Web Design Portfolio
+
+<div align="center">
+
+**سایت‌هایی که طراحی و پیاده‌سازی کردم — Websites I designed & built:**
+
+<br/>
+
+| پروژه | توضیح | لینک |
+|:---:|:---|:---:|
+| 🏎️ | **داینوجت زنجان — RED LINE DYNO**<br/>مرکز تخصصی تیونینگ خودرو، تست دینامو و دیاگ حرفه‌ای | [dyno-tuning-znj.ir](https://dyno-tuning-znj.ir/) |
+| 🚚 | **باربری و حمل‌ونقل زنجان**<br/>صدور بارنامه و حمل بار به سراسر کشور | [elambar-zanjan.ir](https://elambar-zanjan.ir/) |
+
+<br/>
+
+[![RED LINE DYNO](https://img.shields.io/badge/🏎️_RED_LINE_DYNO-dyno--tuning--znj.ir-FF4D00?style=for-the-badge)](https://dyno-tuning-znj.ir/)
+[![Elambar Zanjan](https://img.shields.io/badge/🚚_CARGO_ZANJAN-elambar--zanjan.ir-0EA5E9?style=for-the-badge)](https://elambar-zanjan.ir/)
+
+</div>
+
+---
+
 ## 🚀 پروژه‌های شاخص | Featured Projects
 
 <div align="center">
