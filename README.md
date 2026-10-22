@@ -13,7 +13,7 @@
 
 <div align="center">
 
-[![GitHub Profile Trophy](https://github-profile-trophy.vercel.app/?username=Matin-mohebi&theme=radical&no-frame=true&row=1&column=6&margin-w=8)](https://github.com/Matin-mohebi?tab=repositories)
+[![GitHub Profile Trophy](https://github-profile-trophy.vercel.app/?username=Matin-mohebi&theme=radical&no-frame=true&row=1&column=6&margin-w=8&v=2)](https://github.com/Matin-mohebi?tab=repositories)
 
 </div>
 
@@ -62,7 +62,7 @@
 
 <div align="center">
 
-<img height="165" src="https://github-readme-stats.vercel.app/api?username=Matin-mohebi&show_icons=true&theme=radical&hide_border=true&include_all_commits=true" alt="GitHub Stats"/>
+<img height="165" src="https://github-readme-stats.vercel.app/api?username=Matin-mohebi&show_icons=true&theme=radical&hide_border=true&cache_seconds=86400" alt="GitHub Stats"/>
 &nbsp;
 <img height="165" src="https://github-readme-stats.vercel.app/api/top-langs/?username=Matin-mohebi&layout=compact&theme=radical&hide_border=true&langs_count=6" alt="Top Languages"/>
 
