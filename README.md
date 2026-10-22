@@ -79,7 +79,7 @@
 **پلتفرمر اکشن نینجا با موسیقی واقعی، ۴ مرحله و منوی سینمایی — HTML5 + اندروید**
 کاتانا · شوریکن · دَش سایه · مبدل · باس‌فایت · سیستم ارتقا · رابط فارسی
 
-`React 19` `Canvas 2D` `Capacitor 7` `TypeScript` · [⬇️ دانلود APK v1.2.0](https://github.com/Matin-mohebi/ninja-arashi-2-apk/releases/latest) · [▶️ بازی آنلاین](https://matin-mohebi.github.io/ninja-arashi-2-apk/)
+`React 19` `Canvas 2D` `Capacitor 7` `TypeScript` · [⬇️ دانلود APK v1.2.1 (~11MB امضاشده)](https://github.com/Matin-mohebi/ninja-arashi-2-apk/releases/latest) · [▶️ بازی آنلاین](https://matin-mohebi.github.io/ninja-arashi-2-apk/)
 
 </div>
 
