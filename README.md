@@ -71,7 +71,7 @@
 **تقویم شمسی، هجری و میلادی — اندروید، iOS و وب**
 اوقات شرعی و قبله‌نما · برنامه‌ریز روزانه · تبدیل سه‌طرفهٔ تاریخ · مناسبت‌های رسمی · کاملاً آفلاین
 
-`Android` `iOS/Swift` `Java` `React` `PWA` · [⬇️ دانلود APK v1.7.1](https://github.com/Matin-mohebi/TaqvimCod/releases/latest) · [🌐 تقویم وب (بدون نصب)](https://matin-mohebi.github.io/TaqvimCod/)
+`Android` `iOS/Swift` `Java` `React` `PWA` · [⬇️ دانلود APK v1.7.2](https://github.com/Matin-mohebi/TaqvimCod/releases/latest) · [🌐 تقویم وب (بدون نصب)](https://matin-mohebi.github.io/TaqvimCod/)
 
 <br/>
 
