@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner.png" width="100%" alt="matin-code — Web Designer & Developer"/>
+<img src="assets/banner.jpg" width="100%" alt="matin-code — Web Designer & Developer"/>
 
 # سلام! من **matin-code** هستم 👋 — Hi, I'm matin-code
 
