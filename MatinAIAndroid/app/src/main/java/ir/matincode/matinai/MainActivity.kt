@@ -153,7 +153,7 @@ private fun chatEndpoint(base: String): String {
 private fun providerName(base: String): String {
     val b = base.trim().lowercase()
     return when {
-        b.isBlank(), b.contains("openrouter.ai") -> "OpenRouter"
+        b.isBlank() || b.contains("openrouter.ai") -> "OpenRouter"
         b.contains("models.github.ai") || b.contains("models.inference.ai.azure.com") -> "GitHub Models (retired)"
         else -> try {
             java.net.URI(base.trim()).host?.removePrefix("www.") ?: "OpenRouter"
