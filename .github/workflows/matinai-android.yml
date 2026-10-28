@@ -8,6 +8,9 @@ on:
       - ".github/workflows/matinai-android.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,8 +24,9 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Install Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" > /dev/null
 
       - name: Build APKs
         working-directory: MatinAIAndroid
@@ -38,3 +42,4 @@ jobs:
             MatinAIAndroid/app/build/outputs/apk/release/*.apk
             MatinAIAndroid/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          retention-days: 30
