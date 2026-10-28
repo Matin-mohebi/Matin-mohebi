@@ -34,6 +34,21 @@ jobs:
       - name: Install Android SDK packages
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+      - name: Restore signing keys
+        env:
+          MATIN_KEYSTORE_B64: ${{ secrets.MATIN_KEYSTORE_B64 }}
+          MATIN_KEY_STORE_PASSWORD: ${{ secrets.MATIN_KEY_STORE_PASSWORD }}
+          MATIN_KEY_ALIAS: ${{ secrets.MATIN_KEY_ALIAS }}
+          MATIN_KEY_PASSWORD: ${{ secrets.MATIN_KEY_PASSWORD }}
+        run: |
+          if [ -n "$MATIN_KEYSTORE_B64" ]; then
+            echo "$MATIN_KEYSTORE_B64" | base64 -d > MatinAIAndroid/matin-ai-release.jks
+            printf 'storeFile=matin-ai-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+              "$MATIN_KEY_STORE_PASSWORD" "$MATIN_KEY_ALIAS" "$MATIN_KEY_PASSWORD" > MatinAIAndroid/keystore.properties
+            echo "release keystore restored"
+          else
+            echo "no keystore secret — falling back to debug signing"
+          fi
       - name: Build APKs
         working-directory: MatinAIAndroid
         run: |
@@ -99,6 +114,7 @@ jobs:
           cd MatinAIiOS
           rm -rf www && mkdir www
           cp -r ../MatinAIWeb/. www/
+          rm -rf www/proxy
       - name: Sync Capacitor iOS
         working-directory: MatinAIiOS
         run: |
@@ -173,7 +189,7 @@ jobs:
       - name: Collect files
         run: |
           mkdir out
-          cp artifacts/MatinAI-APK/*.apk out/ 2>/dev/null || true
+          find artifacts/MatinAI-APK -name "*.apk" -exec cp {} out/ \; 2>/dev/null || true
           cp artifacts/MatinAI-Desktop/* out/ 2>/dev/null || true
           cp artifacts/MatinAI-Desktop-mac/* out/ 2>/dev/null || true
           cp artifacts/MatinAI-iOS/*.ipa out/ 2>/dev/null || true
