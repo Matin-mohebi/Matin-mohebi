@@ -1,0 +1,7 @@
+# Neutralino build artifacts
+bin/
+.tmp/
+dist/
+web/
+extensions/
+*.neu

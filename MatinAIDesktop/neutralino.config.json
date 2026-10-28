@@ -1,0 +1,39 @@
+{
+  "applicationId": "ir.matincode.matinai",
+  "version": "1.2.0",
+  "defaultMode": "window",
+  "port": 0,
+  "documentRoot": "/web/",
+  "url": "/",
+  "enableServer": true,
+  "enableNativeAPI": false,
+  "singlePageServe": true,
+  "tokenSecurity": "one-time",
+  "logging": { "enabled": false, "writeToLogFile": false },
+  "nativeAllowList": [],
+  "modes": {
+    "window": {
+      "title": "Matin AI — متین AI",
+      "width": 1120,
+      "height": 730,
+      "minWidth": 380,
+      "minHeight": 500,
+      "icon": "/web/icons/icon-512.png",
+      "fullScreen": false,
+      "alwaysOnTop": false,
+      "enableInspector": false,
+      "borderless": false,
+      "maximize": false,
+      "hidden": false,
+      "resizable": true,
+      "exitProcessOnClose": true
+    }
+  },
+  "cli": {
+    "binaryName": "matin-ai",
+    "resourcesPath": "/web/",
+    "extensionsPath": "/extensions/",
+    "binaryVersion": "5.6.0",
+    "clientVersion": "5.6.0"
+  }
+}

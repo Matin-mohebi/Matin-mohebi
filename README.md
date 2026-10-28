@@ -83,11 +83,12 @@
 
 <br/>
 
-### 🤖 [متین ای‌آی | Matin AI](https://github.com/Matin-mohebi/Matin-mohebi/tree/main/MatinAIAndroid)
-**دستیار هوشمند فارسی برای اندروید — Persian AI Assistant for Android**
-چت با هر سرویس سازگار با OpenAI (OpenAI، OpenRouter و…) · تغییر سرور و مدل از داخل اپ · رابط فارسی با تم تیره · کلید API فقط روی گوشی ذخیره می‌شود · سبک و کم‌حجم (~7MB)
+### 🤖 [متین ای‌آی | Matin AI](https://github.com/Matin-mohebi/Matin-mohebi/tree/main/MatinAIWeb)
+**دستیار هوشمند فارسی با هوش مصنوعی گیت‌هاب — Persian AI assistant powered by GitHub Models**
+پاسخ‌های استریم زنده مثل ChatGPT · تاریخچه گفتگوها · رندر مارک‌داون · فقط با توکن گیت‌هاب، رایگان
 
-`Kotlin` `Jetpack Compose` `Material 3` `OkHttp` · [⬇️ دانلود v1.1.0 — APK اندروید](https://github.com/Matin-mohebi/Matin-mohebi/releases) · [📖 راهنمای کامل](https://github.com/Matin-mohebi/Matin-mohebi/blob/main/MatinAIAndroid/README.md)
+`Kotlin` `Jetpack Compose` `PWA` `HTML/CSS/JS` `Neutralino` `GitHub Models`
+[🌐 نسخه وب (آیفون/اندروید/PC)](https://matin-mohebi.github.io/Matin-mohebi/) · [🪟🐧 ویندوز + لینوکس + اندروید — دانلود](https://github.com/Matin-mohebi/Matin-mohebi/releases) · [📖 راهنما](https://github.com/Matin-mohebi/Matin-mohebi/blob/main/MatinAIWeb/README.md)
 
 </div>
 

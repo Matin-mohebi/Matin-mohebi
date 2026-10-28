@@ -1,0 +1,124 @@
+name: MatinAI Build & Deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "MatinAIAndroid/**"
+      - "MatinAIWeb/**"
+      - "MatinAIDesktop/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: matinai-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------- Android APK ----------------
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+      - name: Build APKs
+        working-directory: MatinAIAndroid
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease assembleDebug --no-daemon --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MatinAI-APK
+          path: |
+            MatinAIAndroid/app/build/outputs/apk/release/*.apk
+            MatinAIAndroid/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  # ---------------- Desktop (Windows / Linux / macOS) ----------------
+  desktop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build desktop apps (Neutralino)
+        run: |
+          npm install -g @neutralinojs/neu@11.3.1 --silent
+          cd MatinAIDesktop
+          cp -r ../MatinAIWeb web
+          neu update
+          neu build --release
+      - name: Package per-platform zips
+        run: |
+          cd MatinAIDesktop/dist/matin-ai
+          zip -q MatinAI-Windows-x64.zip matin-ai-win_x64.exe resources.neu
+          zip -q MatinAI-Linux-x64.zip matin-ai-linux_x64 resources.neu
+          zip -q MatinAI-macOS.zip matin-ai-mac_universal resources.neu
+          cd ..
+          mkdir -p "$GITHUB_WORKSPACE/out-desktop"
+          cp matin-ai/*.zip "$GITHUB_WORKSPACE/out-desktop/"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MatinAI-Desktop
+          path: out-desktop/*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  # ---------------- Web → GitHub Pages ----------------
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: MatinAIWeb
+
+  deploy-pages:
+    needs: web
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ---------------- Release (on version tags) ----------------
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ android, desktop ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Zip web app for release
+        run: zip -qr MatinAI-Web.zip MatinAIWeb
+      - name: Collect files
+        run: |
+          mkdir out
+          cp artifacts/MatinAI-APK/*.apk out/ 2>/dev/null || true
+          cp artifacts/MatinAI-Desktop/*.zip out/ 2>/dev/null || true
+          cp MatinAI-Web.zip out/
+          ls -la out/
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" out/* \
+            --title "Matin AI $GITHUB_REF_NAME — دستیار هوشمند فارسی | Persian AI Assistant" \
+            --generate-notes
