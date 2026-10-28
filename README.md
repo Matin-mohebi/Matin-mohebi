@@ -81,6 +81,14 @@
 
 `React 19` `Canvas 2D` `Capacitor 7` `Neutralino` `TypeScript` · [⬇️ دانلود v1.3.0 — اندروید ~6MB + ویندوز + لینوکس](https://github.com/Matin-mohebi/ninja-arashi-2-apk/releases/latest) · [▶️ بازی آنلاین](https://matin-mohebi.github.io/ninja-arashi-2-apk/)
 
+<br/>
+
+### 🤖 [متین ای‌آی | Matin AI](https://github.com/Matin-mohebi/Matin-mohebi/tree/main/MatinAIAndroid)
+**دستیار هوشمند فارسی برای اندروید — Persian AI Assistant for Android**
+چت با هر سرویس سازگار با OpenAI (OpenAI، OpenRouter و…) · تغییر سرور و مدل از داخل اپ · رابط فارسی با تم تیره · کلید API فقط روی گوشی ذخیره می‌شود · سبک و کم‌حجم (~7MB)
+
+`Kotlin` `Jetpack Compose` `Material 3` `OkHttp` · [⬇️ دانلود v1.1.0 — APK اندروید](https://github.com/Matin-mohebi/Matin-mohebi/releases) · [📖 راهنمای کامل](https://github.com/Matin-mohebi/Matin-mohebi/blob/main/MatinAIAndroid/README.md)
+
 </div>
 
 ---
