@@ -1,8 +1,8 @@
 {
   "name": "matin-ai",
   "productName": "Matin AI",
-  "version": "1.3.0",
-  "description": "Matin AI — دستیار هوشمند فارسی با هوش مصنوعی گیت‌هاب | Persian AI assistant powered by GitHub Models",
+  "version": "1.4.0",
+  "description": "Matin AI — دستیار هوشمند فارسی — رایگان با OpenRouter | Persian AI assistant powered by OpenRouter (free models)",
   "main": "main.js",
   "author": "Matin-mohebi <https://github.com/Matin-mohebi>",
   "license": "MIT",

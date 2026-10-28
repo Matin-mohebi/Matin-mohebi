@@ -40,6 +40,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val prefs = getSharedPreferences("matin_ai", MODE_PRIVATE)
+        // v1.4.0 — GitHub Models retired (2026-07-30): auto-migrate saved settings to OpenRouter
+        if (prefs.getString("gh_migrated", null) == null) {
+            val old = prefs.getString("base_url", "") ?: ""
+            if (old.contains("models.github.ai", true) || old.contains("models.inference.ai.azure.com", true)) {
+                prefs.edit()
+                    .putString("base_url", DEFAULT_BASE_URL)
+                    .putString("model", DEFAULT_MODEL)
+                    .apply()
+            }
+            prefs.edit().putBoolean("gh_migrated", true).apply()
+        }
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme(
@@ -54,8 +65,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private const val DEFAULT_BASE_URL = "https://models.github.ai"
-private const val DEFAULT_MODEL = "openai/gpt-4.1-mini"
+private const val DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
+private const val DEFAULT_MODEL = "openrouter/free"
 private const val SYSTEM_PROMPT =
     "تو Matin AI هستی، دستیار شخصی فارسی‌زبان. دقیق، محترمانه و کاربردی جواب بده. " +
         "اگر کاربر انگلیسی پرسید، انگلیسی جواب بده. پاسخ‌ها را با مارک‌داون مرتب کن. " +
@@ -129,13 +140,24 @@ private fun chatsFromJson(s: String): MutableList<Chat> {
 private fun chatEndpoint(base: String): String {
     val b = base.trim().trimEnd('/')
     return when {
-        b.isBlank() -> DEFAULT_BASE_URL + "/inference/chat/completions"
+        b.isBlank() -> chatEndpoint(DEFAULT_BASE_URL)
         b.endsWith("/chat/completions") -> b
         b.endsWith("/inference") -> "$b/chat/completions"
         b.endsWith("/v1") -> "$b/chat/completions"
         b.endsWith("models.github.ai", ignoreCase = true) -> "$b/inference/chat/completions"
         b.endsWith("models.inference.ai.azure.com", ignoreCase = true) -> "$b/chat/completions"
         else -> "$b/v1/chat/completions"
+    }
+}
+
+private fun providerName(base: String): String {
+    val b = base.trim().lowercase()
+    return when {
+        b.isBlank(), b.contains("openrouter.ai") -> "OpenRouter"
+        b.contains("models.github.ai") || b.contains("models.inference.ai.azure.com") -> "GitHub Models (retired)"
+        else -> try {
+            java.net.URI(base.trim()).host?.removePrefix("www.") ?: "OpenRouter"
+        } catch (_: Exception) { "OpenRouter" }
     }
 }
 
@@ -364,7 +386,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                 Column(Modifier.weight(1f)) {
                     Text("Matin AI", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     Text(
-                        model.trim().ifBlank { DEFAULT_MODEL } + " · GitHub Models",
+                        model.trim().ifBlank { DEFAULT_MODEL } + " · " + providerName(baseUrl),
                         fontSize = 10.5.sp, color = Color.LightGray, maxLines = 1
                     )
                 }
@@ -383,20 +405,20 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                         color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "با توکن گیت‌هاب (GitHub Models) رایگان شروع کن، یا کلید هر سرویس سازگار با OpenAI را بگذار. API use may incur charges.",
+                        "با یک کلید رایگان از OpenRouter شروع کن، یا کلید هر سرویس سازگار با OpenAI را بگذار. (سرویس GitHub Models از ۳۰ ژوئیه ۲۰۲۶ تعطیل شده است.)",
                         color = Color.LightGray
                     )
                     OutlinedTextField(
                         value = apiKey,
                         onValueChange = { apiKey = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("API Key / GitHub Token") },
+                        label = { Text("API Key — OpenRouter") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                     )
                     Text(
-                        "توکن رایگان: github.com/settings/tokens — نیازی به scope خاص نیست. · Create a token at github.com/settings/tokens.",
+                        "تنها چیزی که لازم داری: کلید رایگان از openrouter.ai/keys — ثبت‌نام با گوگل/گیت‌هاب، بعد Create Key · Get a free key at openrouter.ai/keys",
                         color = Color(0xFF8F96B3), fontSize = 11.sp
                     )
                     OutlinedTextField(
@@ -408,7 +430,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
                     )
                     Text(
-                        "پیش‌فرض: https://models.github.ai — سازگار با OpenAI، OpenRouter و…",
+                        "پیش‌فرض: https://openrouter.ai/api/v1 (رایگان) — سازگار با OpenAI، Gemini، Groq و… دست نزن مگر سرویس دیگری بخواهی.",
                         color = Color(0xFF8F96B3), fontSize = 11.sp
                     )
                     OutlinedTextField(
@@ -419,7 +441,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                         singleLine = true
                     )
                     Text(
-                        "مثال: openai/gpt-4.1-mini · openai/gpt-4o-mini · meta/Llama-4-Scout-17B-16E-Instruct",
+                        "مثال: openrouter/free (خودکار، رایگان) · google/gemma-4-31b-it:free · nvidia/nemotron-3-ultra-550b-a55b:free",
                         color = Color(0xFF8F96B3), fontSize = 11.sp
                     )
                     Button(

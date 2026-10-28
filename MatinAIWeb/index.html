@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Matin AI — متین AI</title>
-  <meta name="description" content="دستیار هوشمند فارسی — Persian AI assistant powered by GitHub Models">
+  <meta name="description" content="دستیار هوشمند فارسی — Persian AI assistant powered by OpenRouter (free models)">
   <meta name="theme-color" content="#10111A">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" href="icons/favicon-32.png">
@@ -56,7 +56,7 @@
         <div id="welcome" class="welcome">
           <img src="icons/icon-192.png" alt="Matin AI" class="welcome-logo">
           <h1>سلام! چطور می‌تونم کمکت کنم؟</h1>
-          <p class="welcome-sub">Hi! I'm Matin AI, your Persian assistant — powered by GitHub Models</p>
+          <p class="welcome-sub">Hi! I'm Matin AI, your Persian assistant — powered by OpenRouter · مدل‌های رایگان</p>
           <div class="chips" id="suggestions">
             <button class="chip">✨ یک ایده برای پروژه جدید بده</button>
             <button class="chip">📝 این متن رو خلاصه کن: …</button>
@@ -92,32 +92,33 @@
       </div>
 
       <label class="field">
-        <span class="field-label">کلید API / توکن گیت‌هاب <small>API key — GitHub token</small></span>
+        <span class="field-label">کلید API <small>API key — OpenRouter (free)</small></span>
         <div class="field-row">
-          <input id="set-key" type="password" autocomplete="off" spellcheck="false" placeholder="ghp_… یا github_pat_…">
+          <input id="set-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-or-v1-…">
           <button id="btn-eye" class="btn-eye" title="نمایش/مخفی">👁</button>
         </div>
-        <span class="field-hint">برای هوش مصنوعی گیت‌هاب: یک توکن از
-          <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">github.com/settings/tokens</a>
-          بساز (بدون نیاز به هیچ scope خاصی برای Models).</span>
+        <span class="field-hint">تنها چیزی که باید وارد کنی: یک کلید <b>رایگان</b> از
+          <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>
+          — ثبت‌نام با گوگل/گیت‌هاب، بعد «Create Key» و کپی اینجا · The only thing you need: a free key from openrouter.ai/keys.</span>
       </label>
 
       <label class="field">
-        <span class="field-label">آدرس سرور <small>Base URL</small></span>
-        <input id="set-url" type="url" spellcheck="false" placeholder="https://models.github.ai">
-        <span class="field-hint">پیش‌فرض: هوش مصنوعی گیت‌هاب (GitHub Models) — سازگار با OpenAI، OpenRouter و…</span>
+        <span class="field-label">آدرس سرور <small>Base URL — خودکار پر شده · auto</small></span>
+        <input id="set-url" type="url" spellcheck="false" placeholder="https://openrouter.ai/api/v1">
+        <span class="field-hint">پیش‌فرض: OpenRouter (مدل‌های رایگان) — سازگار با OpenAI، Gemini، Groq و… دست نزن مگر اینکه سرویس دیگری بخواهی.</span>
       </label>
 
       <div class="field">
-        <span class="field-label">مدل <small>Model</small></span>
-        <input id="set-model" type="text" spellcheck="false" placeholder="openai/gpt-4.1-mini">
+        <span class="field-label">مدل <small>Model — خودکار پر شده · auto</small></span>
+        <input id="set-model" type="text" spellcheck="false" placeholder="openrouter/free">
         <div class="model-presets" id="model-presets"></div>
+        <span class="field-hint">«openrouter/free» خودش بهترین مدل رایگانِ لحظه را انتخاب می‌کند · auto-picks the best free model available.</span>
       </div>
 
       <label class="field">
-        <span class="field-label">پراکسی CORS (اختیاری — فقط برای نسخه وب) <small>CORS proxy — web only</small></span>
-        <input id="set-proxy" type="url" spellcheck="false" placeholder="https://your-worker.workers.dev/?target={url}">
-        <span class="field-hint">مرورگرها اجازه اتصال مستقیم به GitHub Models را ندارند (CORS). از اپ دسکتاپ/iOS نیازی نیست — برای وب، یک Worker رایگان بساز: <a href="https://github.com/Matin-mohebi/Matin-mohebi/blob/main/MatinAIWeb/proxy/README.md" target="_blank" rel="noopener">راهنما · Guide</a> — از {url} به‌عنوان جای‌نگهدار استفاده کن.</span>
+        <span class="field-label">پراکسی CORS (به‌ندرت لازم می‌شود) <small>CORS proxy — rarely needed</small></span>
+        <input id="set-proxy" type="url" spellcheck="false" placeholder="خالی بگذار — Leave empty">
+        <span class="field-hint">OpenRouter از مرورگر مستقیم کار می‌کند و پراکسی نمی‌خواهد. فقط برای سرویس‌های دیگر بدون CORS: راهنما · <a href="https://github.com/Matin-mohebi/Matin-mohebi/blob/main/MatinAIWeb/proxy/README.md" target="_blank" rel="noopener">Guide</a> — از {url} به‌عنوان جای‌نگهدار استفاده کن.</span>
       </label>
 
       <div class="modal-actions modal-actions-col">
@@ -125,7 +126,7 @@
         <button id="btn-save-settings" class="btn-primary">ذخیره · Save</button>
       </div>
       <div id="test-result" class="test-result" hidden></div>
-      <p class="security-note">🔒 کلید فقط روی همین دستگاه ذخیره می‌شود (localStorage) · Your key stays on this device only.</p>
+      <p class="security-note">🔒 کلید فقط روی همین دستگاه ذخیره می‌شود (localStorage) · Your key stays on this device only. — GitHub Models retired 2026-07-30 → now on OpenRouter.</p>
     </div>
   </div>
 

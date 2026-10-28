@@ -1,6 +1,6 @@
 /* Matin AI — Electron main process
  * Includes a CORS-free main-process proxy (matinai:// scheme) so the same UI
- * can call GitHub Models and any OpenAI-compatible API without a server. */
+ * can call OpenRouter (free default) and any OpenAI-compatible API without a server. */
 "use strict";
 
 const { app, BrowserWindow, protocol, shell, Menu } = require("electron");

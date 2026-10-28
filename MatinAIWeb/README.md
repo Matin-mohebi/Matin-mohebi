@@ -3,7 +3,7 @@
 <div align="center">
 <img src="icons/icon-192.png" width="90" alt="Matin AI"/>
 <br/>
-<b>دستیار هوشمند فارسی با هوش مصنوعی گیت‌هاب — Persian AI assistant powered by GitHub Models</b>
+<b>دستیار هوشمند فارسی — رایگان با OpenRouter — Persian AI assistant powered by OpenRouter (free)</b>
 </div>
 
 نسخه وب اپ Matin AI با ظاهری شبیه ChatGPT و Claude — یک اپ PWA سبک که روی هر دستگاهی اجرا می‌شود.
@@ -14,8 +14,8 @@ The web version of Matin AI with a ChatGPT/Claude-style UI — a lightweight PWA
 - 💬 **پاسخ‌های استریم زنده** (مثل ChatGPT حرف‌به‌حرف تایپ می‌شود) — Live streaming responses
 - 🗂️ **تاریخچه گفتگوها** با سایدبار — Chat history with a sidebar
 - 📝 **رندر مارک‌داون** + بلوک کد با دکمه کپی — Markdown + code blocks with copy buttons
-- 🤖 **پیش‌فرض: GitHub Models** — فقط با توکن گیت‌هاب خودت رایگان چت کن · Default to GitHub's AI with your own GitHub token
-- 🔄 سازگار با OpenAI، OpenRouter و هر سرویس سازگار — Works with any OpenAI-compatible service
+- 🤖 **پیش‌فرض: OpenRouter (رایگان)** — سرور و مدل خودکار پر شده‌اند؛ فقط یک کلید رایگان لازم داری · Defaults pre-configured — only a free key needed
+- 🔄 سازگار با OpenAI، Gemini، Groq و هر سرویس سازگار — Works with any OpenAI-compatible service
 - 📱 **PWA**: روی آیفون و اندروید نصب می‌شود — Installable on iPhone & Android
 - 🌓 تم تیره، RTL کامل فارسی، دوزبانه — Dark theme, full Persian RTL, bilingual
 
@@ -23,11 +23,14 @@ The web version of Matin AI with a ChatGPT/Claude-style UI — a lightweight PWA
 
 **آدرس:** [https://matin-mohebi.github.io/Matin-mohebi/](https://matin-mohebi.github.io/Matin-mohebi/)
 
-1. توکن گیت‌هاب بساز: [github.com/settings/tokens](https://github.com/settings/tokens) (Generate new token — بدون scope خاص کافی است)
-   Create a GitHub token — no special scope needed.
-2. اپ را باز کن → **تنظیمات** → توکن را وارد کن → ذخیره
-   Open the app → **Settings** → paste token → Save
+1. یک کلید **رایگان** بساز: [openrouter.ai/keys](https://openrouter.ai/keys) — ثبت‌نام با گوگل/گیت‌هاب، بعد «Create Key»
+   Create a **free** key at openrouter.ai/keys (sign in with Google/GitHub).
+2. اپ را باز کن → **تنظیمات** → کلید را وارد کن → ذخیره (آدرس سرور و مدل خودکار پر شده‌اند)
+   Open the app → **Settings** → paste the key → Save (server & model are pre-filled)
 3. چت را شروع کن! 🎉 Start chatting!
+
+> ⚠️ سرویس **GitHub Models در تاریخ ۳۰ ژوئیه ۲۰۲۶ به‌طور کامل تعطیل شد**؛ نسخه‌های قدیمی اپ دیگر به آن وصل نمی‌شوند. نسخه ۱.۴.۰ به‌صورت خودکار تنظیمات قبلی را به OpenRouter منتقل می‌کند.
+> **GitHub Models was fully retired on July 30, 2026** — old app versions can no longer connect; v1.4.0 migrates saved settings to OpenRouter automatically.
 
 ### 📲 Install on iPhone (PWA) | نصب روی آیفون
 
@@ -61,26 +64,29 @@ Download from Releases:
 - `MatinAI-Linux-x64.AppImage` → `chmod +x *.AppImage && ./*.AppImage`
 - `MatinAI-macOS-arm64.zip` / `MatinAI-macOS-x64.zip` → مک (Apple Silicon / Intel)
 
-> دسکتاپ از Electron با پروکسی داخلی استفاده می‌کند؛ برای همین **بدون مشکل CORS** به GitHub Models وصل می‌شود. جزئیات: [`MatinAIDesktop/README.md`](../MatinAIDesktop/README.md)
+> دسکتاپ از Electron با پروکسی داخلی استفاده می‌کند؛ برای همین بدون مشکل CORS به هر سرویسی وصل می‌شود. جزئیات: [`MatinAIDesktop/README.md`](../MatinAIDesktop/README.md)
 
 دیتای اپ (چت‌ها و کلید) روی خود دستگاه ذخیره می‌شود · Data stays on your device.
 
-## 🤖 GitHub Models | هوش مصنوعی گیت‌هاب
+## 🤖 سرویس پیش‌فرض: OpenRouter (رایگان) | Default provider
 
-پیش‌فرض اپ، **GitHub Models** است:
-The default backend is **GitHub Models**:
+پیش‌فرض اپ (نسخه ۱.۴.۰ به بعد)، **OpenRouter** است — رایگان، با CORS (مرورگر مستقیم وصل می‌شود):
+The default backend (since v1.4.0) is **OpenRouter** — free and CORS-enabled:
 
 | تنظیم | مقدار |
 |:---|:---|
-| Base URL | `https://models.github.ai` |
-| Model | `openai/gpt-4.1-mini` (یا از چیپ‌های آماده انتخاب کن) |
-| API Key | توکن گیت‌هاب شما |
+| Base URL | `https://openrouter.ai/api/v1` |
+| Model | `openrouter/free` (خودکار بهترین مدل رایگان لحظه را انتخاب می‌کند) |
+| API Key | کلید رایگان شما از [openrouter.ai/keys](https://openrouter.ai/keys) |
 
-مدل‌های پیشنهادی: `openai/gpt-4.1-mini` · `openai/gpt-4o-mini` · `meta/Llama-4-Scout-17B-16E-Instruct` · `deepseek/DeepSeek-V3-0324`
+مدل‌های رایگان پیشنهادی (اگر مدل مشخصی خواستی): `google/gemma-4-31b-it:free` · `nvidia/nemotron-3-ultra-550b-a55b:free` · `thinkingmachines/inkling:free` — لیست زنده: [openrouter.ai/models?q=free](https://openrouter.ai/models?q=free)
+
+هر سرویس سازگار با OpenAI هم کار می‌کند (OpenAI، Gemini، Groq، Ollama محلی و…) — فقط Base URL و کلید را عوض کن.
+Any OpenAI-compatible service works too — just change the Base URL and key.
 
 ## ⚠️ CORS در نسخه وب | CORS on the web
 
-مرورگرها اجازه اتصال مستقیم به `models.github.ai` را ندارند (CORS). اگر از نسخه وب/PWA استفاده می‌کنی:
+OpenRouter از مرورگر مستقیم قابل استفاده است (CORS فعال است) و پراکسی نمی‌خواهد — فقط برای سرویس‌های دیگرِ بدون CORS:
 - **آسان‌ترین راه:** از اپ‌های نیتیو (دسکتاپ / iOS / اندروید) استفاده کن — نیاز به پراکسی ندارند.
 - **یا** یک Worker رایگان Cloudflare بساز و آدرسش را در تنظیمات وارد کن → راهنمای کامل: [`proxy/README.md`](./proxy/README.md)
 - دکمه **«تست اتصال»** در تنظیمات وضعیت اتصال را دقیق نشان می‌دهد (موفق/خطا + دلیل).

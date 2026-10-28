@@ -1,23 +1,28 @@
-/* Matin AI — web/desktop app logic (Persian-first, GitHub Models default) */
+/* Matin AI — web/desktop app logic (Persian-first, OpenRouter free default) */
 "use strict";
 
-/* ================= Constants & defaults ================= */
+/* ================= Constants & defaults =================
+ * GitHub Models (models.github.ai) was fully retired on 2026-07-30.
+ * Default provider is now OpenRouter — free tier, CORS-enabled (browser-direct OK).
+ */
 const DEFAULTS = {
-  baseUrl: "https://models.github.ai",
-  model: "openai/gpt-4.1-mini",
+  baseUrl: "https://openrouter.ai/api/v1",
+  model: "openrouter/free",
   systemPrompt:
     "تو Matin AI هستی، دستیار شخصی فارسی‌زبان. دقیق، محترمانه و کاربردی جواب بده. " +
     "اگر کاربر انگلیسی پرسید، انگلیسی جواب بده. پاسخ‌ها را با مارک‌داون مرتب کن. " +
     "You are Matin AI, a Persian-speaking personal assistant. Be precise, polite and practical.",
 };
 const MODEL_PRESETS = [
-  "openai/gpt-4.1-mini",
-  "openai/gpt-4.1",
-  "openai/gpt-4o-mini",
-  "meta/Llama-4-Scout-17B-16E-Instruct",
-  "deepseek/DeepSeek-V3-0324",
-  "mistralai/Mistral-Small-2503",
+  "openrouter/free",
+  "google/gemma-4-31b-it:free",
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "thinkingmachines/inkling:free",
+  "dots-studio/dots-3-note-preview:free",
+  "cohere/north-mini-code:free",
 ];
+/* Endpoints of services that no longer exist — settings pointing here are auto-migrated. */
+const DEAD_ENDPOINTS = /models\.github\.ai|models\.inference\.ai\.azure\.com/i;
 const LS_CHATS = "matin_ai_chats_v1";
 const LS_SETTINGS = "matin_ai_settings_v1";
 
@@ -39,15 +44,23 @@ let streaming = null; // AbortController while generating
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s);
 
+let settingsMigrated = false; // true when a dead GitHub Models config was auto-fixed
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(LS_SETTINGS) || "{}");
-    return {
+    const out = {
       apiKey: s.apiKey || "",
       baseUrl: s.baseUrl || DEFAULTS.baseUrl,
       model: s.model || DEFAULTS.model,
       proxyUrl: s.proxyUrl || "",
     };
+    // v1.4.0: GitHub Models retired (2026-07-30) — move saved configs off the dead endpoints.
+    if (DEAD_ENDPOINTS.test(out.baseUrl)) {
+      out.baseUrl = DEFAULTS.baseUrl;
+      out.model = DEFAULTS.model;
+      settingsMigrated = true;
+    }
+    return out;
   } catch {
     return { apiKey: "", baseUrl: DEFAULTS.baseUrl, model: DEFAULTS.model, proxyUrl: "" };
   }
@@ -300,12 +313,20 @@ function openSettings() {
 function closeSettings() {
   $("settings-modal").hidden = true;
 }
+function providerName(baseUrl) {
+  try {
+    const h = new URL(baseUrl).hostname.replace(/^www\./, "");
+    if (/openrouter\.ai$/i.test(h)) return "OpenRouter";
+    if (/models\.github\.ai|models\.inference\.ai\.azure\.com/i.test(h)) return "GitHub Models (retired)";
+    return h;
+  } catch { return "OpenRouter"; }
+}
 function updateModelChip() {
-  $("model-chip").textContent = settings.model + " · GitHub Models";
+  $("model-chip").textContent = settings.model + " · " + providerName(settings.baseUrl);
 }
 function ensureKeyOrOpenSettings() {
   if (!settings.apiKey.trim()) {
-    showError("برای شروع، کلید API/توکن گیت‌هاب را در تنظیمات وارد کن. · Add your API key / GitHub token in Settings first.");
+    showError("برای شروع، کلید API (OpenRouter) را در تنظیمات وارد کن — رایگان از openrouter.ai/keys · Add your API key (OpenRouter) in Settings — free at openrouter.ai/keys.");
     openSettings();
     return false;
   }
@@ -381,6 +402,8 @@ async function generate() {
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer " + settings.apiKey.trim(),
+        "HTTP-Referer": location.origin || "https://matin-mohebi.github.io",
+        "X-Title": "Matin AI",
       },
       body: JSON.stringify({
         model: settings.model.trim() || DEFAULTS.model,
@@ -461,7 +484,7 @@ async function generate() {
         } else if (IS_ELECTRON) {
           hint = " — اتصال برقرار نشد؛ اینترنت و توکن را چک کن · Network failed — check connection and token.";
         } else {
-          hint = " — مرورگر اجازه اتصال مستقیم نمی‌دهد (CORS) یا شبکه قطع است. راه‌حل‌ها: ۱) از اپ دسکتاپ/iOS/اندروید استفاده کن ۲) پراکسی رایگان Cloudflare را از بخش راهنمای README بساز و در تنظیمات وارد کن · Browser blocked the direct call (CORS). Use the desktop/mobile app, or set a CORS proxy in Settings — see README.";
+          hint = " — اتصال مستقیم برقرار نشد (CORS یا شبکه). OpenRouter مستقیم کار می‌کند؛ آدرس سرور را دست نزن، کلید را چک کن، یا پراکسی Cloudflare (README) را در تنظیمات بگذار · Direct call failed (CORS or network). OpenRouter works browser-direct — keep the default URL, check your key, or set a CORS proxy from the README.";
         }
       }
       showError("❌ " + (e.message || "ارتباط برقرار نشد") + hint);
@@ -621,9 +644,12 @@ function hideError() {
   if (window.innerWidth <= 860) {
     $("sidebar").classList.add("hidden"); // mobile: start with drawer closed
   }
-  if (!settings.apiKey && window.matchMedia("(min-width: 861px)").matches) {
+  if (settingsMigrated) {
+    // GitHub Models retired on 2026-07-30 — tell the user we moved them automatically.
+    showError("⚠️ سرویس GitHub Models تعطیل شده (۳۰ ژوئیه ۲۰۲۶). اتصالت خودکار به OpenRouter (رایگان) منتقل شد — فقط کلید رایگان از openrouter.ai/keys بگیر و در تنظیمات بگذار · GitHub Models retired; moved to OpenRouter automatically — get a free key at openrouter.ai/keys.");
+  } else if (!settings.apiKey && window.matchMedia("(min-width: 861px)").matches) {
     // first run hint, non-blocking
-    showError("👋 خوش آمدی! برای استفاده، توکن گیت‌هاب یا کلید API خودت را در تنظیمات وارد کن · Welcome! Add your GitHub token / API key in Settings.");
+    showError("👋 خوش آمدی! آدرس سرور و مدل خودکار پر شده‌اند — فقط یک کلید رایگان از openrouter.ai/keys بگیر و در تنظیمات بگذار · Welcome! Server & model are pre-configured — just add a free OpenRouter key from openrouter.ai/keys.");
   }
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     navigator.serviceWorker.register("sw.js").catch(() => {});

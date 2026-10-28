@@ -2,15 +2,19 @@
 
 ## چرا لازم است؟ | Why?
 
-GitHub Models (`models.github.ai`) هدرهای CORS ندارد، بنابراین مرورگر اجازه اتصال مستقیم نمی‌دهد:
+پیش‌فرض جدید اپ (OpenRouter) **CORS دارد** و از مرورگر مستقیم کار می‌کند — پراکسی لازم نیست.
+The new default (OpenRouter) supports CORS and works browser-direct — no proxy needed.
+
+این پراکسی فقط برای سرویس‌های دیگرِ بدون CORS (مثل بعضی endpoint های Azure/OpenAI) کاربرد دارد:
+This proxy is only needed for other CORS-less providers:
 
 ```
-Access to fetch at 'https://models.github.ai/inference/chat/completions'
+Access to fetch at 'https://your-provider/…/chat/completions'
 from origin 'https://matin-mohebi.github.io' has been blocked by CORS policy
 ```
 
 - ✅ **اپ دسکتاپ (Electron)، اپ iOS (Capacitor) و اپ اندروید نیازی به پراکسی ندارند** — درخواست‌ها بیرون از مرورگر انجام می‌شود.
-- 🌐 فقط **نسخه وب / PWA** برای GitHub Models به پراکسی نیاز دارد (یا می‌توانید از سرویس‌های دارای CORS مثل OpenRouter با همان تنظیمات Base URL استفاده کنید).
+- 🌐 نسخه وب / PWA هم با OpenRouter بدون پراکسی کار می‌کند.
 
 ## راه‌اندازی رایگان در ۳ دقیقه (Cloudflare Workers) | Free 3-minute setup
 

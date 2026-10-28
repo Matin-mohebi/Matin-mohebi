@@ -1,5 +1,5 @@
 /* Matin AI service worker — cache the app shell for offline / PWA install */
-const CACHE = "matin-ai-v1.2.0";
+const CACHE = "matin-ai-v1.4.0";
 const SHELL = [
   "./",
   "index.html",

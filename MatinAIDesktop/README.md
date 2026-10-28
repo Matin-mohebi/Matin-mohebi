@@ -1,12 +1,12 @@
 # 🖥️ Matin AI Desktop — متین ای‌آی دسکتاپ
 
-نسخه دسکتاپ (ویندوز / لینوکس / مک) با **Electron** — همان رابط کاربری سبک ChatGPT با موتور GitHub Models.
+نسخه دسکتاپ (ویندوز / لینوکس / مک) با **Electron** — همان رابط کاربری سبک ChatGPT، رایگان با OpenRouter.
 
-The desktop version (Windows / Linux / macOS) built with **Electron** — same ChatGPT-style UI, powered by GitHub Models.
+The desktop version (Windows / Linux / macOS) built with **Electron** — same ChatGPT-style UI, powered by OpenRouter (free).
 
 ## ✨ ویژگی‌ها | Features
 
-- 🔌 **بدون مشکل CORS** — درخواست‌ها از پروسه اصلی Electron با پروکسی داخلی (`matinai://`) انجام می‌شود و به GitHub Models وصل می‌شود؛ بدون نیاز به پراکسی خارجی.
+- 🔌 **بدون مشکل CORS** — درخواست‌ها از پروسه اصلی Electron با پروکسی داخلی (`matinai://`) انجام می‌شود و به هر سرویسی (پیش‌فرض: OpenRouter) وصل می‌شود؛ بدون نیاز به پراکسی خارجی.
 - ⚡ پاسخ‌های استریم زنده (SSE)
 - 💾 چت‌ها و کلید روی خود دستگاه (localStorage وب‌ویو)
 - 🔐 بدون Node Integration · Sandbox فعال · فقط اتصال خروجی به سرور AI
@@ -37,13 +37,13 @@ npm run dist       # ساخت پکیج‌های نصب
 
 ## 🏗️ نحوه کار پروکسی داخلی | How the built-in proxy works
 
-مرورگرهای معمولی به دلیل CORS نمی‌توانند مستقیم به `models.github.ai` وصل شوند؛ اما Electron درخواست را در **پروسه اصلی** انجام می‌دهد:
+مرورگرهای معمولی به برخی سرویس‌ها به دلیل CORS نمی‌توانند مستقیم وصل شوند؛ اما Electron درخواست را در **پروسه اصلی** انجام می‌دهد (پیش‌فرض: OpenRouter):
 
 ```
-Renderer (app-ui)  --fetch-->  matinai://models.github.ai/inference/chat/completions
+Renderer (app-ui)  --fetch-->  matinai://openrouter.ai/api/v1/chat/completions
                                      │  (protocol.handle در main.js)
                                      ▼
-Main process  --https-->  https://models.github.ai/inference/chat/completions
+Main process  --https-->  https://openrouter.ai/api/v1/chat/completions
 ```
 
 استریم SSE هم از همین مسیر پاس داده می‌شود؛ بنابراین تایپ زنده جواب مثل ChatGPT کار می‌کند.
