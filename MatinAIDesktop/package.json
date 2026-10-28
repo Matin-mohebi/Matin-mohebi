@@ -1,7 +1,7 @@
 {
   "name": "matin-ai",
   "productName": "Matin AI",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Matin AI — دستیار هوشمند فارسی — بدون توکن، بدون ثبت‌نام | Persian AI assistant — zero config, no token",
   "main": "main.js",
   "author": "Matin-mohebi <https://github.com/Matin-mohebi>",

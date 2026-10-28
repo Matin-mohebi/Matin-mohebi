@@ -84,10 +84,10 @@
 <br/>
 
 ### 🤖 [متین ای‌آی | Matin AI](https://github.com/Matin-mohebi/Matin-mohebi/tree/main/MatinAIWeb)
-**دستیار هوشمند فارسی — بدون توکن، بدون ثبت‌نام · Persian AI assistant — zero config, no token**
-پاسخ‌های استریم زنده مثل ChatGPT · تاریخچه گفتگوها · رندر مارک‌داون · همه‌چیز خودکار — سرور و مدل خودکار از سرور گرفته می‌شوند، هیچ کلیدی لازم نیست!
+**دستیار هوشمند فارسی — بدون توکن، با تعویض خودکار بین هوش مصنوعی‌ها · Persian AI assistant — zero config + smart multi-AI routing**
+موتور هوشمند: بر اساس سوال، بهترین AI انتخاب می‌شود · failover خودکار بین سرویس‌ها · ضد توهم (hallucination) · پیش‌نمایش تفکر زنده · خروجی مارک‌داون
 
-`Kotlin` `Jetpack Compose` `PWA` `HTML/CSS/JS` `Electron` `Capacitor` `Pollinations`
+`Kotlin` `Jetpack Compose` `PWA` `HTML/CSS/JS` `Electron` `Capacitor` `Pollinations` `Smart-Routing`
 [🌐 نسخه وب (بدون نصب)](https://matin-mohebi.github.io/Matin-mohebi/) · [📱⬇️ دانلود همه‌پلتفرم — اندروید + ویندوز + لینوکس + مک + iOS](https://github.com/Matin-mohebi/Matin-mohebi/releases) · [📖 راهنما](https://github.com/Matin-mohebi/Matin-mohebi/blob/main/MatinAIWeb/README.md)
 
 > 📲 **روی آیفون (iPhone):** یا [نسخه وب](https://matin-mohebi.github.io/Matin-mohebi/) رو از Safari با «Add to Home Screen» مثل اپ نصب کن، یا فایل `MatinAI-iOS-unsigned.ipa` رو از Releases بگیر و با [Sideloadly](https://sideloadly.io) یا [AltStore](https://altstore.io) نصبش کن (کد سورس Xcode کامل در پوشه `MatinAIiOS`).

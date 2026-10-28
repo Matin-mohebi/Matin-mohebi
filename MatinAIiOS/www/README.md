@@ -11,12 +11,18 @@ The web version of Matin AI with a ChatGPT/Claude-style UI — a lightweight PWA
 
 ## ✨ Features | امکانات
 
+- 🧠 **موتور تعویض خودکار هوش مصنوعی** — بر اساس نوع سوال (کد/ریاضی/ترجمه/خلاصه/نوشتن/عمومی) بهترین مدل انتخاب می‌شود · Smart auto-routing picks the best AI per question
+- 🔀 **failover خودکار** — اگر یک سرویس خطا بدهد یا محدود شود، خودکار سراغ AI بعدی می‌رود و badge «پاسخ از» نشان داده می‌شود · Silent auto-failover with a per-answer AI badge
+- 🛡️ **ضد توهم** — پرامپت سیستمی سخت‌گیرانه: ساخت لینک/منبع/آمار ممنوع، «مطمئن نیستم» صریح · Anti-hallucination system prompt
+- 💭 **پیش‌نمایش تفکر زنده** — مدل‌های reasoning وسط فکر کردنشان را زنده نشان می‌دهند · Live thinking preview
+- 🔁 **دوباره با AI دیگر** — دکمه Regenerate سراغ مدل بعدی زنجیره می‌رود · Regenerate tries the next AI in the chain
+- 🏥 **داشبورد سلامت سرویس‌ها** — تست همه سرویس‌ها با یک دکمه · One-tap health check for all providers
+- 📥 **خروجی گفتگو (Markdown)** · Export chat as Markdown
 - 💬 **پاسخ‌های استریم زنده** (مثل ChatGPT حرف‌به‌حرف تایپ می‌شود) — Live streaming responses
 - 🗂️ **تاریخچه گفتگوها** با سایدبار — Chat history with a sidebar
 - 📝 **رندر مارک‌داون** + بلوک کد با دکمه کپی — Markdown + code blocks with copy buttons
-- 🤖 **پیش‌فرض: Pollinations (رایگان، بدون کلید)** — همه‌چیز خودکار است؛ هیچ توکنی لازم نیست · Everything is automatic — no token, no signup
-- 📡 **لیست مدل‌ها زنده از سرور گرفته می‌شود** · The model list is fetched live from the server
-- 🔄 سازگار با OpenAI، OpenRouter، Gemini، Groq و هر سرویس سازگار (اختیاری) — Works with any OpenAI-compatible service (optional)
+- 🤖 **پیش‌فرض: Pollinations (رایگان، بدون کلید)** — هیچ توکنی لازم نیست · No token, no signup
+- 🔄 سازگار با OpenAI، OpenRouter، Groq، Gemini و هر سرویس سازگار (اختیاری) — Works with any OpenAI-compatible service (optional)
 - 📱 **PWA**: روی آیفون و اندروید نصب می‌شود — Installable on iPhone & Android
 - 🌓 تم تیره، RTL کامل فارسی، دوزبانه — Dark theme, full Persian RTL, bilingual
 
@@ -29,7 +35,9 @@ The web version of Matin AI with a ChatGPT/Claude-style UI — a lightweight PWA
 
 > 📝 فقط اگر بخواهی سرویس دیگری (OpenRouter/OpenAI/…) بگذاری، در تنظیمات آدرس را عوض کن و کلید همان سرویس را وارد کن — پیش‌فرض هیچ کلیدی نمی‌خواهد · Only if you switch providers you'll need that provider's key — the keyless default just works.
 >
-> ⚠️ سرویس **GitHub Models در تاریخ ۳۰ ژوئیه ۲۰۲۶ تعطیل شد**؛ نسخه‌های قدیمی دیگر به آن وصل نمی‌شوند. نسخه ۱.۵.۰ همه تنظیمات قدیمی را خودکار به سرویس بدون‌کلید منتقل می‌کند · **GitHub Models was retired on July 30, 2026**; v1.5.0 migrates old settings to the keyless provider automatically.
+> ⚠️ سرویس **GitHub AI (GitHub Models) در تاریخ ۳۰ ژوئیه ۲۰۲۶ تعطیل شد** — اندپوینت آن فقط «OK» برمی‌گرداند و از هیچ‌جایی دیگر در دسترس نیست؛ به همین دلیل در تنظیمات با برچسب «تعطیل» نشان داده می‌شود. لیست همه سرویس‌های زنده را با دکمه «تست همه سرویس‌ها» در تنظیمات ببینید · **GitHub AI (GitHub Models) was retired on July 30, 2026** — its endpoint only returns "OK" now; it's shown as dead in Settings. Use the "Test all providers" button to see live status.
+>
+> 🆕 v1.6.0: همه تنظیمات قدیمی خودکار منتقل می‌شوند و موتور تعویض خودکار روشن است · old settings are migrated automatically and smart routing is ON.
 
 ### 📲 Install on iPhone (PWA) | نصب روی آیفون
 

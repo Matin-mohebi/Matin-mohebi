@@ -74,15 +74,21 @@ class MainActivity : ComponentActivity() {
 private const val DEFAULT_BASE_URL = "https://text.pollinations.ai"
 private const val DEFAULT_MODEL = "openai"
 private const val SYSTEM_PROMPT =
-    "تو Matin AI هستی، دستیار شخصی فارسی‌زبان. دقیق، محترمانه و کاربردی جواب بده. " +
-        "اگر کاربر انگلیسی پرسید، انگلیسی جواب بده. پاسخ‌ها را با مارک‌داون مرتب کن. " +
-        "You are Matin AI, a Persian-speaking personal assistant. Be precise, polite and practical."
+    "تو Matin AI هستی، دستیار شخصی فارسی‌زبان و بسیار دقیق.\n" +
+        "قواعد دقت (خیلی مهم):\n" +
+        "1. فقط چیزهایی را بگو که مطمئنی؛ اگر نمی‌دانی صریح بگو «مطمئن نیستم».\n" +
+        "2. هیچ لینک، منبع، آمار، تاریخ یا ارجاعی از خودت نساز.\n" +
+        "3. برای محاسبات مرحله‌به‌مرحله حساب کن و نتیجه نهایی را جدا بنویس.\n" +
+        "4. اگر سوال مبهم است، اول یک سوال کوتاه روشن‌کننده بپرس.\n" +
+        "5. اگر کاربر انگلیسی نوشت انگلیسی جواب بده، در غیر این صورت فارسی روان جواب بده.\n" +
+        "6. پاسخ‌ها را با مارک‌داون تمیز ساختار بده؛ برای کد بلوک کد با نام زبان بگذار.\n" +
+        "You are Matin AI — a precise Persian-first assistant. Never invent facts, sources or links."
 private const val GREETING =
-    "سلام! من متین AI هستم، دستیار شخصی فارسی‌زبان. 👋\n" +
-        "همه‌چیز خودکار وصل است — بدون توکن و بدون ثبت‌نام؛ فقط سوالت رو بپرس!\n" +
-        "Hi! I'm Matin AI — zero config, no token needed. Just ask!"
+    "سلام! من متین AI هستم، دستیار شخصی فارسی‌زبان. 🧠👋\n" +
+        "حالت هوشمند روشن است: بر اساس سوالت، بین بهترین هوش مصنوعی‌های رایگان خودکار جابه‌جا می‌شوم — بدون توکن!\n" +
+        "Hi! I'm Matin AI — smart auto-routing across free AIs, zero config."
 
-private data class ChatMessage(val role: String, val text: String)
+private data class ChatMessage(val role: String, val text: String, val via: String = "")
 private data class Chat(
     val id: String,
     var title: String,
@@ -96,7 +102,9 @@ private fun chatsToJson(chats: List<Chat>): String {
     chats.forEach { c ->
         val msgs = JSONArray()
         c.messages.takeLast(40).forEach { m ->
-            msgs.put(JSONObject().put("role", m.role).put("text", m.text))
+            val o = JSONObject().put("role", m.role).put("text", m.text)
+            if (m.via.isNotBlank()) o.put("via", m.via)
+            msgs.put(o)
         }
         arr.put(
             JSONObject()
@@ -119,7 +127,7 @@ private fun chatsFromJson(s: String): MutableList<Chat> {
             val marr = o.optJSONArray("messages") ?: JSONArray()
             for (j in 0 until marr.length()) {
                 val m = marr.getJSONObject(j)
-                msgs.add(ChatMessage(m.optString("role"), m.optString("text")))
+                msgs.add(ChatMessage(m.optString("role"), m.optString("text"), m.optString("via")))
             }
             out.add(
                 Chat(
@@ -172,6 +180,80 @@ private fun modelsEndpoint(base: String): String {
 /** Only OpenRouter/OpenAI/custom endpoints need a key — Pollinations (default) does not. */
 private fun needsKey(base: String): Boolean = !base.contains("pollinations.ai", ignoreCase = true)
 
+/* ================= SMART ROUTING ENGINE (v1.6.0) ================= */
+private data class Prov(val id: String, val label: String, val baseUrl: String, val keyless: Boolean, val dead: Boolean = false, val deadNote: String = "")
+private val REGISTRY = listOf(
+    Prov("pollinations", "Pollinations", "https://text.pollinations.ai", keyless = true),
+    Prov("openrouter", "OpenRouter", "https://openrouter.ai/api/v1", keyless = false),
+    Prov("groq", "Groq", "https://api.groq.com/openai/v1", keyless = false),
+    Prov("openai", "OpenAI", "https://api.openai.com/v1", keyless = false),
+    Prov("github", "GitHub AI", "https://models.github.ai", keyless = false, dead = true,
+        deadNote = "سرویس GitHub AI از ۳۰ ژوئیه ۲۰۲۶ تعطیل شده است · retired July 30, 2026"),
+)
+private data class Cand(val baseUrl: String, val model: String, val s: Int = 0)
+
+private fun providerLabelOf(base: String): String =
+    REGISTRY.firstOrNull { it.baseUrl == base.trim().trimEnd('/') }?.label
+        ?: try {
+            java.net.URI(base.trim()).host?.removePrefix("www.") ?: "Custom"
+        } catch (_: Exception) { "Custom" }
+
+/* Persian-aware keyword routing: \b boundaries are ASCII-only and miss Persian
+ * script, so we tokenize and match words/phrases explicitly (same as web). */
+private val ROUTER_WORDS: List<Pair<String, List<String>>> = listOf(
+    "translate" to listOf("translate", "ترجمه", "به انگلیسی", "به فارسی", "مترجم"),
+    "summary" to listOf("summarize", "summary", "tldr", "خلاصه", "چکیده"),
+    "code" to listOf("code", "coding", "کد", "کدنویسی", "برنامه", "برنامه‌نویسی", "اسکریپت", "script", "function", "تابع", "پایتون", "python", "javascript", "typescript", "kotlin", "swift", "sql", "html", "css", "react", "bug", "خطا", "دیباگ", "debug", "api", "regex", "الگوریتم", "algorithm", "دیتابیس", "database", "shell", "bash"),
+    "math" to listOf("calculate", "math", "equation", "integral", "derivative", "محاسبه", "حساب", "ریاضی", "معادله", "انتگرال", "مشتق", "درصد", "جذر", "احتمال", "هندسه", "ضربدر", "تقسیم", "جمع کن"),
+    "creative" to listOf("story", "poem", "song", "essay", "caption", "slogan", "داستان", "شعر", "ترانه", "کپشن", "اسلوگان", "نامه", "مقاله"),
+)
+
+private fun classify(qRaw: String): String {
+    val s = " " + qRaw.lowercase().replace(Regex("[،؛؟?!.,()\\[\\]{}\"'\\n\\r\\t]"), " ").replace(Regex("\\s+"), " ").trim() + " "
+    for ((type, words) in ROUTER_WORDS) {
+        for (raw in words) {
+            val w = raw.lowercase()
+            when {
+                w.contains(" ") -> if (s.contains(w)) return type          // phrase
+                s.contains(" $w ") -> return type                          // exact token
+                w.length >= 4 && s.contains(w) -> return type              // longer words
+            }
+        }
+    }
+    if (Regex("[0-9۰-۹]+\\s*[+\\-*/^×÷]\\s*[0-9۰-۹]+").containsMatchIn(qRaw)) return "math"
+    if (Regex("[0-9۰-۹]+\\s+درصد").containsMatchIn(qRaw)) return "math"
+    return "general"
+}
+
+private val PREFER = mapOf(
+    "code" to listOf("coder", "codestral", "qwen", "deepseek", "devstral", "starcoder", "gpt-oss", "70b", "llama", "mistral"),
+    "math" to listOf("reasoning", "r1", "o1", "o3", "o4", "think", "gpt-oss", "70b", "qwen", "llama"),
+    "translate" to listOf("gpt-oss", "70b", "llama", "qwen", "mistral"),
+    "summary" to listOf("gpt-oss", "70b", "llama", "qwen", "mistral"),
+    "creative" to listOf("70b", "llama", "mistral", "qwen", "gpt-oss"),
+    "general" to listOf("gpt-oss", "70b", "llama", "qwen", "mistral"),
+)
+
+private fun scoreModel(m: String, type: String): Int {
+    val mm = m.lowercase()
+    val prefs = PREFER[type] ?: PREFER.getValue("general")
+    prefs.forEachIndexed { i, kw -> if (mm.contains(kw)) return i }
+    return prefs.size + 1
+}
+
+/** Ordered candidate chain: keyless providers first, best model match per question type first. */
+private fun buildCandidates(question: String, autoMode: Boolean, currentBase: String, currentModel: String, pools: Map<String, List<String>>): List<Cand> {
+    if (!autoMode) return listOf(Cand(currentBase.trim().trimEnd('/'), currentModel.trim().ifBlank { DEFAULT_MODEL }))
+    val type = classify(question)
+    val bases = REGISTRY.filter { it.keyless && !it.dead }.map { it.baseUrl }.toMutableList()
+    val cur = currentBase.trim().trimEnd('/')
+    if (!bases.contains(cur)) bases.add(cur)
+    val out = mutableListOf<Cand>()
+    for (b in bases) pools[b]?.forEach { m -> out.add(Cand(b, m, scoreModel(m, type))) }
+    if (out.isEmpty()) out.add(Cand(cur, currentModel.trim().ifBlank { DEFAULT_MODEL }))
+    return out.sortedBy { it.s }.distinctBy { it.baseUrl + "|" + it.model }
+}
+
 /** Parse a models-list payload: accepts ["id",…] , [{name|id}] and {"data":[…]}. */
 private fun parseModelIds(body: String): List<String> {
     val raw = body.trim()
@@ -216,6 +298,9 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
     var showSettings by remember { mutableStateOf(false) }
     var modelList by remember { mutableStateOf(listOf<String>()) }
     var modelsLoading by remember { mutableStateOf(false) }
+    // v1.6.0 — smart auto-routing: pools per provider + auto mode switch
+    var autoMode by remember { mutableStateOf(prefs.getBoolean("auto_mode", true)) }
+    val pools = remember { mutableStateMapOf<String, List<String>>() }
 
     val chats = remember { mutableStateListOf<Chat>().apply { addAll(chatsFromJson(prefs.getString("chats", "[]") ?: "[]")) } }
     var activeId by remember { mutableStateOf<String?>(chats.firstOrNull()?.id) }
@@ -254,8 +339,8 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
         } catch (_: Exception) { }
     }
 
-    /** Fetch the model list live from the server (zero-config: no key needed for the default). */
-    fun fetchModels(url: String) {
+    /** Fetch the model list live from the server into the routing pool. */
+    fun fetchPool(url: String) {
         scope.launch {
             modelsLoading = true
             val ids = withContext(Dispatchers.IO) {
@@ -269,13 +354,18 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                     emptyList()
                 }
             }
-            if (ids.isNotEmpty()) modelList = ids
+            val b = url.trim().trimEnd('/')
+            if (ids.isNotEmpty()) {
+                pools[b] = ids
+                if (b == baseUrl.trim().trimEnd('/')) modelList = ids
+            }
             modelsLoading = false
         }
     }
-    // auto-load the model list when the settings screen opens
+    // auto-load pools: the keyless default at boot, the current provider when settings opens
+    LaunchedEffect(Unit) { if (pools.isEmpty()) fetchPool(DEFAULT_BASE_URL) }
     LaunchedEffect(showSettings) {
-        if (showSettings && modelList.isEmpty()) fetchModels(baseUrl)
+        if (showSettings && modelList.isEmpty()) fetchPool(baseUrl)
     }
 
     fun newChat() {
@@ -286,7 +376,53 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
         error = ""
     }
 
-    fun startGeneration() {
+    fun streamOnce(cand: Cand, history: JSONArray, idx: Int, acc: StringBuilder) {
+        val body = JSONObject()
+            .put("model", cand.model)
+            .put("messages", history)
+            .put("stream", true)
+            .toString()
+            .toRequestBody("application/json; charset=utf-8".toMediaType())
+        val reqBuilder = Request.Builder().url(chatEndpoint(cand.baseUrl)).post(body)
+        val key = apiKey.trim()
+        if (key.isNotBlank() && needsKey(cand.baseUrl)) reqBuilder.header("Authorization", "Bearer $key")
+        val call = client.newCall(reqBuilder.build())
+        currentCall = call
+        call.execute().use { response ->
+            if (!response.isSuccessful) {
+                val text = response.body?.string().orEmpty()
+                val detail = try {
+                    JSONObject(text).optJSONObject("error")?.optString("message")
+                } catch (_: Exception) { null }
+                throw IllegalStateException(
+                    detail?.takeIf { it.isNotBlank() } ?: "خطای سرویس · HTTP ${response.code}"
+                )
+            }
+            val source = response.body?.source() ?: throw IllegalStateException("پاسخ خالی بود.")
+            source.use { s ->
+                while (true) {
+                    val line = s.readUtf8Line() ?: break
+                    if (!line.startsWith("data:")) continue
+                    val data = line.substring(5).trim()
+                    if (data == "[DONE]") break
+                    try {
+                        val delta = JSONObject(data)
+                            .optJSONArray("choices")?.optJSONObject(0)
+                            ?.optJSONObject("delta")?.optString("content")
+                        if (!delta.isNullOrEmpty()) {
+                            acc.append(delta)
+                            if (idx < messages.size) {
+                                messages[idx] = ChatMessage("assistant", acc.toString())
+                            }
+                        }
+                    } catch (_: Exception) { }
+                }
+            }
+        }
+        if (acc.isBlank()) throw IllegalStateException("پاسخ خالی بود")
+    }
+
+    fun startGeneration(startAt: Int = 0) {
         error = ""
         busy = true
         messages.add(ChatMessage("assistant", ""))
@@ -294,59 +430,32 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
         scope.launch {
             try {
                 withContext(Dispatchers.IO) {
+                    val lastUser = messages.subList(0, idx).lastOrNull { it.role == "user" }?.text ?: ""
                     val history = JSONArray()
                     history.put(JSONObject().put("role", "system").put("content", SYSTEM_PROMPT))
                     messages.subList(0, idx).takeLast(24).forEach {
                         if (it.text.isNotBlank()) history.put(JSONObject().put("role", it.role).put("content", it.text))
                     }
-                    val body = JSONObject()
-                        .put("model", model.trim().ifBlank { DEFAULT_MODEL })
-                        .put("messages", history)
-                        .put("stream", true)
-                        .toString()
-                        .toRequestBody("application/json; charset=utf-8".toMediaType())
-                    // v1.5.0 — Authorization only when a key exists (default provider needs none)
-                    val reqBuilder = Request.Builder().url(chatEndpoint(baseUrl)).post(body)
-                    val key = apiKey.trim()
-                    if (key.isNotBlank()) reqBuilder.header("Authorization", "Bearer $key")
-                    val request = reqBuilder.build()
-                    val call = client.newCall(request)
-                    currentCall = call
-                    val acc = StringBuilder()
-                    call.execute().use { response ->
-                        if (!response.isSuccessful) {
-                            val text = response.body?.string().orEmpty()
-                            val detail = try {
-                                JSONObject(text).optJSONObject("error")?.optString("message")
-                            } catch (_: Exception) { null }
-                            throw IllegalStateException(
-                                detail?.takeIf { it.isNotBlank() } ?: "خطای سرویس · HTTP ${response.code}"
-                            )
-                        }
-                        val source = response.body?.source() ?: throw IllegalStateException("پاسخ خالی بود.")
-                        source.use { s ->
-                            while (true) {
-                                val line = s.readUtf8Line() ?: break
-                                if (!line.startsWith("data:")) continue
-                                val data = line.substring(5).trim()
-                                if (data == "[DONE]") break
-                                try {
-                                    val delta = JSONObject(data)
-                                        .optJSONArray("choices")?.optJSONObject(0)
-                                        ?.optJSONObject("delta")?.optString("content")
-                                    if (!delta.isNullOrEmpty()) {
-                                        acc.append(delta)
-                                        if (idx < messages.size) {
-                                            messages[idx] = ChatMessage("assistant", acc.toString())
-                                        }
-                                    }
-                                } catch (_: Exception) { }
-                            }
+                    // ---- SMART ROUTING: ordered candidate chain, silent auto-failover ----
+                    val candidates = buildCandidates(lastUser, autoMode, baseUrl, model, pools)
+                    val chain = if (startAt > 0 && startAt < candidates.size) candidates.drop(startAt) else candidates
+                    var answeredVia = ""
+                    var lastErr: Exception? = null
+                    for (cand in chain.take(5)) {
+                        try {
+                            val acc = StringBuilder()
+                            streamOnce(cand, history, idx, acc)
+                            val finalText = acc.toString().ifBlank { throw IllegalStateException("پاسخ خالی بود") }
+                            answeredVia = providerLabelOf(cand.baseUrl) + " · " + cand.model
+                            if (idx < messages.size) messages[idx] = ChatMessage("assistant", finalText, answeredVia)
+                            lastErr = null
+                            break
+                        } catch (ce: Exception) {
+                            if (ce.message?.contains("Canceled", true) == true || ce.message?.contains("abort", true) == true) throw ce
+                            lastErr = ce // silently switch to the next AI
                         }
                     }
-                    currentCall = null
-                    val finalText = acc.toString().ifBlank { "پاسخی دریافت نشد · No response." }
-                    if (idx < messages.size) messages[idx] = ChatMessage("assistant", finalText)
+                    lastErr?.let { throw IllegalStateException("همه سرویس‌ها امتحان شدند · " + (it.message ?: "failed")) }
                     activeId?.let { id -> chats.find { it.id == id }?.let { it.updatedAt = System.currentTimeMillis() } }
                     persist()
                 }
@@ -369,6 +478,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
         }
     }
 
+    /** Stream one candidate into messages[idx]; throws on HTTP/network errors or empty replies. */
     fun send(prompt: String) {
         val text = prompt.trim()
         if (text.isBlank() || busy) return
@@ -460,7 +570,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                 Column(Modifier.weight(1f)) {
                     Text("Matin AI", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     Text(
-                        model.trim().ifBlank { DEFAULT_MODEL } + " · " + providerName(baseUrl),
+                        (if (autoMode) "🧠 هوشمند · " else "") + model.trim().ifBlank { DEFAULT_MODEL } + " · " + providerName(baseUrl),
                         fontSize = 10.5.sp, color = Color.LightGray, maxLines = 1
                     )
                 }
@@ -479,9 +589,29 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                         color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "✅ همه‌چیز خودکار است — بدون توکن، بدون ثبت‌نام. فقط برگرد و بنویس!\n" +
-                            "Everything is automatic — no token, no signup. This screen is only for changing the AI service.",
+                        "✅ همه‌چیز خودکار است — بدون توکن، بدون ثبت‌نام.\n" +
+                            "Everything is automatic — no token, no signup.",
                         color = Color(0xFF7FE0AC), fontSize = 13.sp
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("🧠 تعویض خودکار هوش مصنوعی · Smart routing", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                "بر اساس سوال، بهترین مدل انتخاب و در صورت خطا خودکار عوض می‌شود",
+                                color = Color(0xFF8F96B3), fontSize = 10.5.sp
+                            )
+                        }
+                        Switch(
+                            checked = autoMode,
+                            onCheckedChange = {
+                                autoMode = it
+                                prefs.edit().putBoolean("auto_mode", it).apply()
+                            }
+                        )
+                    }
+                    Text(
+                        "سرویس‌ها: ✅ Pollinations (بدون کلید) · OpenRouter · Groq · OpenAI — ⛔ GitHub AI: از ۳۰ ژوئیه ۲۰۲۶ تعطیل شده و دیگر از هیچ‌جا در دسترس نیست.",
+                        color = Color(0xFF8F96B3), fontSize = 10.5.sp
                     )
                     OutlinedTextField(
                         value = baseUrl,
@@ -587,6 +717,9 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                                     if (message.role == "user") "شما" else "Matin AI",
                                     color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold
                                 )
+                                if (message.role == "assistant" && message.via.isNotBlank()) {
+                                    Text("🧠 " + message.via, color = Color(0xFF8F96B3), fontSize = 9.sp)
+                                }
                                 Spacer(Modifier.height(4.dp))
                                 Text(message.text, color = Color.White, fontSize = 15.sp)
                             }
