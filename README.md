@@ -84,10 +84,10 @@
 <br/>
 
 ### 🤖 [متین ای‌آی | Matin AI](https://github.com/Matin-mohebi/Matin-mohebi/tree/main/MatinAIWeb)
-**دستیار هوشمند فارسی — رایگان با OpenRouter — Persian AI assistant powered by OpenRouter (free models)**
-پاسخ‌های استریم زنده مثل ChatGPT · تاریخچه گفتگوها · رندر مارک‌داون · آدرس سرور و مدل خودکار — فقط یک کلید رایگان از openrouter.ai/keys لازم داری
+**دستیار هوشمند فارسی — بدون توکن، بدون ثبت‌نام · Persian AI assistant — zero config, no token**
+پاسخ‌های استریم زنده مثل ChatGPT · تاریخچه گفتگوها · رندر مارک‌داون · همه‌چیز خودکار — سرور و مدل خودکار از سرور گرفته می‌شوند، هیچ کلیدی لازم نیست!
 
-`Kotlin` `Jetpack Compose` `PWA` `HTML/CSS/JS` `Electron` `Capacitor` `OpenRouter`
+`Kotlin` `Jetpack Compose` `PWA` `HTML/CSS/JS` `Electron` `Capacitor` `Pollinations`
 [🌐 نسخه وب (بدون نصب)](https://matin-mohebi.github.io/Matin-mohebi/) · [📱⬇️ دانلود همه‌پلتفرم — اندروید + ویندوز + لینوکس + مک + iOS](https://github.com/Matin-mohebi/Matin-mohebi/releases) · [📖 راهنما](https://github.com/Matin-mohebi/Matin-mohebi/blob/main/MatinAIWeb/README.md)
 
 > 📲 **روی آیفون (iPhone):** یا [نسخه وب](https://matin-mohebi.github.io/Matin-mohebi/) رو از Safari با «Add to Home Screen» مثل اپ نصب کن، یا فایل `MatinAI-iOS-unsigned.ipa` رو از Releases بگیر و با [Sideloadly](https://sideloadly.io) یا [AltStore](https://altstore.io) نصبش کن (کد سورس Xcode کامل در پوشه `MatinAIiOS`).

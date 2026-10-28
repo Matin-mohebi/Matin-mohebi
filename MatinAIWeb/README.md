@@ -3,7 +3,7 @@
 <div align="center">
 <img src="icons/icon-192.png" width="90" alt="Matin AI"/>
 <br/>
-<b>دستیار هوشمند فارسی — رایگان با OpenRouter — Persian AI assistant powered by OpenRouter (free)</b>
+<b>دستیار هوشمند فارسی — بدون توکن، بدون ثبت‌نام · Persian AI assistant — zero config, no token</b>
 </div>
 
 نسخه وب اپ Matin AI با ظاهری شبیه ChatGPT و Claude — یک اپ PWA سبک که روی هر دستگاهی اجرا می‌شود.
@@ -14,8 +14,9 @@ The web version of Matin AI with a ChatGPT/Claude-style UI — a lightweight PWA
 - 💬 **پاسخ‌های استریم زنده** (مثل ChatGPT حرف‌به‌حرف تایپ می‌شود) — Live streaming responses
 - 🗂️ **تاریخچه گفتگوها** با سایدبار — Chat history with a sidebar
 - 📝 **رندر مارک‌داون** + بلوک کد با دکمه کپی — Markdown + code blocks with copy buttons
-- 🤖 **پیش‌فرض: OpenRouter (رایگان)** — سرور و مدل خودکار پر شده‌اند؛ فقط یک کلید رایگان لازم داری · Defaults pre-configured — only a free key needed
-- 🔄 سازگار با OpenAI، Gemini، Groq و هر سرویس سازگار — Works with any OpenAI-compatible service
+- 🤖 **پیش‌فرض: Pollinations (رایگان، بدون کلید)** — همه‌چیز خودکار است؛ هیچ توکنی لازم نیست · Everything is automatic — no token, no signup
+- 📡 **لیست مدل‌ها زنده از سرور گرفته می‌شود** · The model list is fetched live from the server
+- 🔄 سازگار با OpenAI، OpenRouter، Gemini، Groq و هر سرویس سازگار (اختیاری) — Works with any OpenAI-compatible service (optional)
 - 📱 **PWA**: روی آیفون و اندروید نصب می‌شود — Installable on iPhone & Android
 - 🌓 تم تیره، RTL کامل فارسی، دوزبانه — Dark theme, full Persian RTL, bilingual
 
@@ -23,14 +24,12 @@ The web version of Matin AI with a ChatGPT/Claude-style UI — a lightweight PWA
 
 **آدرس:** [https://matin-mohebi.github.io/Matin-mohebi/](https://matin-mohebi.github.io/Matin-mohebi/)
 
-1. یک کلید **رایگان** بساز: [openrouter.ai/keys](https://openrouter.ai/keys) — ثبت‌نام با گوگل/گیت‌هاب، بعد «Create Key»
-   Create a **free** key at openrouter.ai/keys (sign in with Google/GitHub).
-2. اپ را باز کن → **تنظیمات** → کلید را وارد کن → ذخیره (آدرس سرور و مدل خودکار پر شده‌اند)
-   Open the app → **Settings** → paste the key → Save (server & model are pre-filled)
-3. چت را شروع کن! 🎉 Start chatting!
+1. اپ را باز کن — همین! 🎉 Open the app — that's it!
+2. بنویس و جواب بگیر؛ سرور، مدل و لیست مدل‌ها همه خودکار از سرور می‌آیند · The server, model and model list all come from the server automatically. **هیچ توکنی لازم نیست · No token needed.**
 
-> ⚠️ سرویس **GitHub Models در تاریخ ۳۰ ژوئیه ۲۰۲۶ به‌طور کامل تعطیل شد**؛ نسخه‌های قدیمی اپ دیگر به آن وصل نمی‌شوند. نسخه ۱.۴.۰ به‌صورت خودکار تنظیمات قبلی را به OpenRouter منتقل می‌کند.
-> **GitHub Models was fully retired on July 30, 2026** — old app versions can no longer connect; v1.4.0 migrates saved settings to OpenRouter automatically.
+> 📝 فقط اگر بخواهی سرویس دیگری (OpenRouter/OpenAI/…) بگذاری، در تنظیمات آدرس را عوض کن و کلید همان سرویس را وارد کن — پیش‌فرض هیچ کلیدی نمی‌خواهد · Only if you switch providers you'll need that provider's key — the keyless default just works.
+>
+> ⚠️ سرویس **GitHub Models در تاریخ ۳۰ ژوئیه ۲۰۲۶ تعطیل شد**؛ نسخه‌های قدیمی دیگر به آن وصل نمی‌شوند. نسخه ۱.۵.۰ همه تنظیمات قدیمی را خودکار به سرویس بدون‌کلید منتقل می‌کند · **GitHub Models was retired on July 30, 2026**; v1.5.0 migrates old settings to the keyless provider automatically.
 
 ### 📲 Install on iPhone (PWA) | نصب روی آیفون
 
@@ -66,27 +65,28 @@ Download from Releases:
 
 > دسکتاپ از Electron با پروکسی داخلی استفاده می‌کند؛ برای همین بدون مشکل CORS به هر سرویسی وصل می‌شود. جزئیات: [`MatinAIDesktop/README.md`](../MatinAIDesktop/README.md)
 
-دیتای اپ (چت‌ها و کلید) روی خود دستگاه ذخیره می‌شود · Data stays on your device.
+دیتای اپ (چت‌ها و کلیدِ اختیاری) روی خود دستگاه ذخیره می‌شود · Data stays on your device.
 
-## 🤖 سرویس پیش‌فرض: OpenRouter (رایگان) | Default provider
+## 🤖 سرویس پیش‌فرض: Pollinations (بدون کلید) | Default provider
 
-پیش‌فرض اپ (نسخه ۱.۴.۰ به بعد)، **OpenRouter** است — رایگان، با CORS (مرورگر مستقیم وصل می‌شود):
-The default backend (since v1.4.0) is **OpenRouter** — free and CORS-enabled:
+پیش‌فرض اپ (نسخه ۱.۵.۰ به بعد)، **Pollinations** است — رایگان، بدون هیچ کلیدی، با CORS باز (مرورگر مستقیم وصل می‌شود):
+The default backend (since v1.5.0) is **Pollinations** — free, NO API key, CORS-open (browser-direct):
 
 | تنظیم | مقدار |
 |:---|:---|
-| Base URL | `https://openrouter.ai/api/v1` |
-| Model | `openrouter/free` (خودکار بهترین مدل رایگان لحظه را انتخاب می‌کند) |
-| API Key | کلید رایگان شما از [openrouter.ai/keys](https://openrouter.ai/keys) |
+| Base URL | `https://text.pollinations.ai` |
+| Chat endpoint | `https://text.pollinations.ai/openai` (سازگار با OpenAI · OpenAI-compatible) |
+| Model | `openai` — پیش‌فرض خودکار · auto default |
+| Model list | `https://text.pollinations.ai/models` — زنده از سرور · fetched live |
+| API Key | ❌ **لازم نیست · NOT needed** |
 
-مدل‌های رایگان پیشنهادی (اگر مدل مشخصی خواستی): `google/gemma-4-31b-it:free` · `nvidia/nemotron-3-ultra-550b-a55b:free` · `thinkingmachines/inkling:free` — لیست زنده: [openrouter.ai/models?q=free](https://openrouter.ai/models?q=free)
-
-هر سرویس سازگار با OpenAI هم کار می‌کند (OpenAI، Gemini، Groq، Ollama محلی و…) — فقط Base URL و کلید را عوض کن.
-Any OpenAI-compatible service works too — just change the Base URL and key.
+هر سرویس سازگار با OpenAI هم کار می‌کند (OpenRouter، OpenAI، Gemini، Groq، Ollama محلی و…) — فقط Base URL را عوض کن و کلید همان سرویس را در تنظیمات بگذار.
+Any OpenAI-compatible service works too — change the Base URL and add that provider's key in Settings (optional).
 
 ## ⚠️ CORS در نسخه وب | CORS on the web
 
-OpenRouter از مرورگر مستقیم قابل استفاده است (CORS فعال است) و پراکسی نمی‌خواهد — فقط برای سرویس‌های دیگرِ بدون CORS:
+سرویس پیش‌فرض (Pollinations) CORS باز دارد و از مرورگر مستقیم کار می‌کند — پراکسی نمی‌خواهد؛ فقط برای سرویس‌های دیگرِ بدون CORS:
+The default provider is CORS-open and works browser-direct — a proxy is only needed for other providers:
 - **آسان‌ترین راه:** از اپ‌های نیتیو (دسکتاپ / iOS / اندروید) استفاده کن — نیاز به پراکسی ندارند.
 - **یا** یک Worker رایگان Cloudflare بساز و آدرسش را در تنظیمات وارد کن → راهنمای کامل: [`proxy/README.md`](./proxy/README.md)
 - دکمه **«تست اتصال»** در تنظیمات وضعیت اتصال را دقیق نشان می‌دهد (موفق/خطا + دلیل).
@@ -104,6 +104,6 @@ No build step needed — pure HTML/CSS/JS.
 
 ## 🔒 Security | امنیت
 
-- کلید/توکن فقط در `localStorage` همین دستگاه ذخیره می‌شود و مستقیم به سرویس انتخابی شما ارسال می‌شود.
-  The key lives only in this device's `localStorage` and is sent directly to your chosen service.
-- توکن را با کسی به اشتراک نگذار · Never share your token.
+- پیش‌فرض هیچ کلیدی ندارد؛ اگر کلید سرویس دیگری بگذاری، فقط در `localStorage` همین دستگاه ذخیره می‌شود و مستقیم به همان سرویس ارسال می‌شود.
+  The keyless default stores nothing; an optional key lives only in this device's `localStorage` and is sent directly to your chosen service.
+- کلید را با کسی به اشتراک نگذار · Never share your key.

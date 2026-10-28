@@ -3,6 +3,7 @@ package ir.matincode.matinai
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -40,16 +41,21 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val prefs = getSharedPreferences("matin_ai", MODE_PRIVATE)
-        // v1.4.0 — GitHub Models retired (2026-07-30): auto-migrate saved settings to OpenRouter
-        if (prefs.getString("gh_migrated", null) == null) {
-            val old = prefs.getString("base_url", "") ?: ""
-            if (old.contains("models.github.ai", true) || old.contains("models.inference.ai.azure.com", true)) {
+        // v1.5.0 — FULLY AUTOMATIC: migrate every legacy config to the zero-config provider
+        // (dead GitHub Models endpoints, or OpenRouter default with an empty key).
+        if (prefs.getString("v15_migrated", null) == null) {
+            val oldUrl = prefs.getString("base_url", "") ?: ""
+            val oldKey = prefs.getString("api_key", "") ?: ""
+            val dead = oldUrl.contains("models.github.ai", true) ||
+                oldUrl.contains("models.inference.ai.azure.com", true)
+            val openRouterNoKey = oldKey.isBlank() && oldUrl.contains("openrouter.ai", true)
+            if (dead || openRouterNoKey) {
                 prefs.edit()
                     .putString("base_url", DEFAULT_BASE_URL)
                     .putString("model", DEFAULT_MODEL)
                     .apply()
             }
-            prefs.edit().putBoolean("gh_migrated", true).apply()
+            prefs.edit().putBoolean("v15_migrated", true).apply()
         }
         setContent {
             MaterialTheme(
@@ -65,15 +71,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private const val DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
-private const val DEFAULT_MODEL = "openrouter/free"
+private const val DEFAULT_BASE_URL = "https://text.pollinations.ai"
+private const val DEFAULT_MODEL = "openai"
 private const val SYSTEM_PROMPT =
     "تو Matin AI هستی، دستیار شخصی فارسی‌زبان. دقیق، محترمانه و کاربردی جواب بده. " +
         "اگر کاربر انگلیسی پرسید، انگلیسی جواب بده. پاسخ‌ها را با مارک‌داون مرتب کن. " +
         "You are Matin AI, a Persian-speaking personal assistant. Be precise, polite and practical."
 private const val GREETING =
-    "سلام! من متین AI هستم، دستیار شخصی فارسی‌زبان. سوالت رو بپرس تا شروع کنیم. 👋\n" +
-        "Hi! I'm Matin AI, your Persian personal assistant — now powered by GitHub Models."
+    "سلام! من متین AI هستم، دستیار شخصی فارسی‌زبان. 👋\n" +
+        "همه‌چیز خودکار وصل است — بدون توکن و بدون ثبت‌نام؛ فقط سوالت رو بپرس!\n" +
+        "Hi! I'm Matin AI — zero config, no token needed. Just ask!"
 
 private data class ChatMessage(val role: String, val text: String)
 private data class Chat(
@@ -142,31 +149,73 @@ private fun chatEndpoint(base: String): String {
     return when {
         b.isBlank() -> chatEndpoint(DEFAULT_BASE_URL)
         b.endsWith("/chat/completions") -> b
+        b.endsWith("/openai") -> b // Pollinations chat endpoint
+        b.endsWith("text.pollinations.ai", ignoreCase = true) -> "$b/openai"
         b.endsWith("/inference") -> "$b/chat/completions"
         b.endsWith("/v1") -> "$b/chat/completions"
         b.endsWith("models.github.ai", ignoreCase = true) -> "$b/inference/chat/completions"
-        b.endsWith("models.inference.ai.azure.com", ignoreCase = true) -> "$b/chat/completions"
         else -> "$b/v1/chat/completions"
     }
+}
+
+/** Models-list endpoint — used to fill the model picker live from the server. */
+private fun modelsEndpoint(base: String): String {
+    val b = base.trim().trimEnd('/')
+    return when {
+        b.isBlank() -> modelsEndpoint(DEFAULT_BASE_URL)
+        b.contains("pollinations.ai", ignoreCase = true) -> "https://text.pollinations.ai/models"
+        b.contains("openrouter.ai", ignoreCase = true) || b.contains("api.openai.com", ignoreCase = true) -> "$b/models"
+        else -> "$b/v1/models"
+    }
+}
+
+/** Only OpenRouter/OpenAI/custom endpoints need a key — Pollinations (default) does not. */
+private fun needsKey(base: String): Boolean = !base.contains("pollinations.ai", ignoreCase = true)
+
+/** Parse a models-list payload: accepts ["id",…] , [{name|id}] and {"data":[…]}. */
+private fun parseModelIds(body: String): List<String> {
+    val raw = body.trim()
+    val items = try {
+        if (raw.startsWith("[")) JSONArray(raw)
+        else JSONObject(raw).optJSONArray("data") ?: JSONArray()
+    } catch (_: Exception) {
+        return emptyList()
+    }
+    val ids = mutableListOf<String>()
+    for (i in 0 until items.length()) {
+        val o = items.opt(i)
+        val id = when (o) {
+            is String -> o
+            is JSONObject -> o.optString("name").ifBlank { o.optString("id") }
+            else -> ""
+        }
+        if (id.isNotBlank()) ids.add(id)
+    }
+    return ids
 }
 
 private fun providerName(base: String): String {
     val b = base.trim().lowercase()
     return when {
-        b.isBlank() || b.contains("openrouter.ai") -> "OpenRouter"
+        b.isBlank() || b.contains("pollinations.ai") -> "Pollinations · بدون کلید · no key"
+        b.contains("openrouter.ai") -> "OpenRouter"
         b.contains("models.github.ai") || b.contains("models.inference.ai.azure.com") -> "GitHub Models (retired)"
         else -> try {
-            java.net.URI(base.trim()).host?.removePrefix("www.") ?: "OpenRouter"
-        } catch (_: Exception) { "OpenRouter" }
+            java.net.URI(base.trim()).host?.removePrefix("www.") ?: "Pollinations"
+        } catch (_: Exception) { "Pollinations" }
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun MatinAiApp(prefs: android.content.SharedPreferences) {
     var apiKey by remember { mutableStateOf(prefs.getString("api_key", "") ?: "") }
     var baseUrl by remember { mutableStateOf(prefs.getString("base_url", DEFAULT_BASE_URL) ?: DEFAULT_BASE_URL) }
     var model by remember { mutableStateOf(prefs.getString("model", DEFAULT_MODEL) ?: DEFAULT_MODEL) }
-    var showSettings by remember { mutableStateOf((prefs.getString("api_key", "") ?: "").isBlank()) }
+    // v1.5.0 — zero-config: the app opens straight into the chat, no settings needed
+    var showSettings by remember { mutableStateOf(false) }
+    var modelList by remember { mutableStateOf(listOf<String>()) }
+    var modelsLoading by remember { mutableStateOf(false) }
 
     val chats = remember { mutableStateListOf<Chat>().apply { addAll(chatsFromJson(prefs.getString("chats", "[]") ?: "[]")) } }
     var activeId by remember { mutableStateOf<String?>(chats.firstOrNull()?.id) }
@@ -205,6 +254,30 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
         } catch (_: Exception) { }
     }
 
+    /** Fetch the model list live from the server (zero-config: no key needed for the default). */
+    fun fetchModels(url: String) {
+        scope.launch {
+            modelsLoading = true
+            val ids = withContext(Dispatchers.IO) {
+                try {
+                    val req = Request.Builder().url(modelsEndpoint(url)).build()
+                    client.newCall(req).execute().use { r ->
+                        if (!r.isSuccessful) emptyList()
+                        else parseModelIds(r.body?.string() ?: "")
+                    }
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
+            if (ids.isNotEmpty()) modelList = ids
+            modelsLoading = false
+        }
+    }
+    // auto-load the model list when the settings screen opens
+    LaunchedEffect(showSettings) {
+        if (showSettings && modelList.isEmpty()) fetchModels(baseUrl)
+    }
+
     fun newChat() {
         if (busy) currentCall?.cancel()
         val c = Chat(UUID.randomUUID().toString(), "", mutableListOf(ChatMessage("assistant", GREETING)), System.currentTimeMillis())
@@ -232,11 +305,11 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                         .put("stream", true)
                         .toString()
                         .toRequestBody("application/json; charset=utf-8".toMediaType())
-                    val request = Request.Builder()
-                        .url(chatEndpoint(baseUrl))
-                        .header("Authorization", "Bearer ${apiKey.trim()}")
-                        .post(body)
-                        .build()
+                    // v1.5.0 — Authorization only when a key exists (default provider needs none)
+                    val reqBuilder = Request.Builder().url(chatEndpoint(baseUrl)).post(body)
+                    val key = apiKey.trim()
+                    if (key.isNotBlank()) reqBuilder.header("Authorization", "Bearer $key")
+                    val request = reqBuilder.build()
                     val call = client.newCall(request)
                     currentCall = call
                     val acc = StringBuilder()
@@ -300,8 +373,9 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
         val text = prompt.trim()
         if (text.isBlank() || busy) return
         error = ""
-        if (apiKey.isBlank()) {
-            error = "اول از بخش تنظیمات، کلید API/توکن گیت‌هاب را وارد کن. · Add your API key / GitHub token first."
+        // v1.5.0 — no key required for the default provider; only custom ones need one
+        if (needsKey(baseUrl) && apiKey.isBlank()) {
+            error = "سرویس انتخابی به کلید نیاز دارد — در تنظیمات کلید بگذار یا به پیش‌فرض (بدون کلید) برگرد. · This provider needs an API key — add one or switch back to the keyless default."
             showSettings = true
             return
         }
@@ -405,43 +479,71 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                         color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "با یک کلید رایگان از OpenRouter شروع کن، یا کلید هر سرویس سازگار با OpenAI را بگذار. (سرویس GitHub Models از ۳۰ ژوئیه ۲۰۲۶ تعطیل شده است.)",
-                        color = Color.LightGray
-                    )
-                    OutlinedTextField(
-                        value = apiKey,
-                        onValueChange = { apiKey = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("API Key — OpenRouter") },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-                    )
-                    Text(
-                        "تنها چیزی که لازم داری: کلید رایگان از openrouter.ai/keys — ثبت‌نام با گوگل/گیت‌هاب، بعد Create Key · Get a free key at openrouter.ai/keys",
-                        color = Color(0xFF8F96B3), fontSize = 11.sp
+                        "✅ همه‌چیز خودکار است — بدون توکن، بدون ثبت‌نام. فقط برگرد و بنویس!\n" +
+                            "Everything is automatic — no token, no signup. This screen is only for changing the AI service.",
+                        color = Color(0xFF7FE0AC), fontSize = 13.sp
                     )
                     OutlinedTextField(
                         value = baseUrl,
                         onValueChange = { baseUrl = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Base URL — آدرس سرور") },
+                        label = { Text("Base URL — آدرس سرور (خودکار · auto)") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
                     )
                     Text(
-                        "پیش‌فرض: https://openrouter.ai/api/v1 (رایگان) — سازگار با OpenAI، Gemini، Groq و… دست نزن مگر سرویس دیگری بخواهی.",
+                        "پیش‌فرض: https://text.pollinations.ai — رایگان و بدون کلید. دست نزن مگر سرویس دیگری بخواهی · Default is free and keyless.",
                         color = Color(0xFF8F96B3), fontSize = 11.sp
                     )
                     OutlinedTextField(
                         value = model,
                         onValueChange = { model = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Model — نام مدل") },
+                        label = { Text("Model — نام مدل (خودکار از سرور · auto)") },
                         singleLine = true
                     )
                     Text(
-                        "مثال: openrouter/free (خودکار، رایگان) · google/gemma-4-31b-it:free · nvidia/nemotron-3-ultra-550b-a55b:free",
+                        if (modelsLoading) "⏳ در حال گرفتن لیست مدل‌ها از سرور… · fetching models…"
+                        else if (modelList.isNotEmpty()) "✅ لیست مدل‌ها زنده از سرور گرفته شد · fetched live — روی هرکدام بزن تا انتخاب شود"
+                        else "لیست مدل‌ها خودکار از سرور گرفته می‌شود · the list is fetched automatically.",
+                        color = Color(0xFF8F96B3), fontSize = 11.sp
+                    )
+                    if (modelList.isNotEmpty()) {
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            modelList.take(10).forEach { m ->
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = if (m == model.trim()) Color(0xFF9B8CFF).copy(alpha = 0.22f) else Color(0xFF23263A),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (m == model.trim()) Color(0xFF9B8CFF) else Color(0xFF3A3D52)
+                                    ),
+                                    onClick = { model = m }
+                                ) {
+                                    Text(
+                                        m,
+                                        color = if (m == model.trim()) Color(0xFF9B8CFF) else Color(0xFFB9BDD3),
+                                        fontSize = 11.5.sp,
+                                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    OutlinedTextField(
+                        value = apiKey,
+                        onValueChange = { apiKey = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("API Key — اختیاری · OPTIONAL") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                    )
+                    Text(
+                        "سرویس پیش‌فرض هیچ کلیدی نمی‌خواهد! فقط اگر آدرس سرور را به OpenRouter/OpenAI یا سرویس دیگر تغییر دادی، کلید همان سرویس را اینجا بگذار · The default provider needs no key at all — only fill this if you switch providers.",
                         color = Color(0xFF8F96B3), fontSize = 11.sp
                     )
                     Button(
@@ -457,8 +559,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("ذخیره · Save") }
                     Text(
-                        "کلید فقط روی همین گوشی ذخیره می‌شود. آن را با کسی به اشتراک نگذار و داخل مخزن عمومی GitHub قرار نده.\n" +
-                            "Your key is stored only on this device. Never share or commit it.",
+                        "کلید (اگر بگذاری) فقط روی همین گوشی ذخیره می‌شود و جایی ارسال نمی‌شود.",
                         color = Color(0xFFFFD180), fontSize = 12.sp
                     )
                 }

@@ -285,6 +285,19 @@ body {
   transition: all 0.12s;
 }
 .preset:hover { border-color: var(--accent); color: var(--text); }
+.preset.active { border-color: var(--accent); color: var(--accent); background: rgba(155, 140, 255, 0.12); }
+.auto-badge {
+  background: rgba(52, 199, 123, 0.10);
+  border: 1px solid rgba(52, 199, 123, 0.35);
+  color: #7fe0ac;
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.9;
+  margin-bottom: 4px;
+}
+.auto-badge small { font-weight: 400; color: var(--text-dim); display: block; margin-top: 2px; }
 .modal-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
 .modal-actions-col { flex-direction: column; gap: 8px; }
 .btn-secondary {

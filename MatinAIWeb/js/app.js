@@ -1,26 +1,22 @@
-/* Matin AI — web/desktop app logic (Persian-first, OpenRouter free default) */
+/* Matin AI — web/desktop/iOS app logic (Persian-first, ZERO-CONFIG) */
 "use strict";
 
 /* ================= Constants & defaults =================
- * GitHub Models (models.github.ai) was fully retired on 2026-07-30.
- * Default provider is now OpenRouter — free tier, CORS-enabled (browser-direct OK).
+ * v1.5.0 — FULLY AUTOMATIC: no token, no signup, no settings needed.
+ * Default provider is Pollinations — free anonymous tier, CORS-open
+ * (Access-Control-Allow-Origin: *), OpenAI-compatible, NO API KEY required.
+ * The model list is fetched live from the server (GET /models).
  */
 const DEFAULTS = {
-  baseUrl: "https://openrouter.ai/api/v1",
-  model: "openrouter/free",
+  baseUrl: "https://text.pollinations.ai",
+  model: "openai",
   systemPrompt:
     "تو Matin AI هستی، دستیار شخصی فارسی‌زبان. دقیق، محترمانه و کاربردی جواب بده. " +
     "اگر کاربر انگلیسی پرسید، انگلیسی جواب بده. پاسخ‌ها را با مارک‌داون مرتب کن. " +
     "You are Matin AI, a Persian-speaking personal assistant. Be precise, polite and practical.",
 };
-const MODEL_PRESETS = [
-  "openrouter/free",
-  "google/gemma-4-31b-it:free",
-  "nvidia/nemotron-3-ultra-550b-a55b:free",
-  "thinkingmachines/inkling:free",
-  "dots-studio/dots-3-note-preview:free",
-  "cohere/north-mini-code:free",
-];
+/* Shown only if the live /models fetch fails. */
+const FALLBACK_MODELS = ["openai", "openai-fast"];
 /* Endpoints of services that no longer exist — settings pointing here are auto-migrated. */
 const DEAD_ENDPOINTS = /models\.github\.ai|models\.inference\.ai\.azure\.com/i;
 const LS_CHATS = "matin_ai_chats_v1";
@@ -29,7 +25,7 @@ const LS_SETTINGS = "matin_ai_settings_v1";
 /* ================= Runtime detection =================
  * - Electron: main process proxies requests via matinai:// protocol (no CORS, full streaming)
  * - Capacitor (iOS/Android native): CapacitorHttp plugin patches fetch -> native HTTP (no CORS, no SSE)
- * - Plain browser (web/PWA): may hit CORS on some providers -> optional proxy in Settings
+ * - Plain browser (web/PWA): Pollinations is CORS-open -> direct calls work, no proxy needed
  */
 const IS_ELECTRON = /Electron/i.test(navigator.userAgent) || !!window.matinDesktop;
 const IS_CAPACITOR = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform());
@@ -44,7 +40,7 @@ let streaming = null; // AbortController while generating
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s);
 
-let settingsMigrated = false; // true when a dead GitHub Models config was auto-fixed
+let settingsMigrated = false; // true when an old config was auto-fixed
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(LS_SETTINGS) || "{}");
@@ -54,8 +50,11 @@ function loadSettings() {
       model: s.model || DEFAULTS.model,
       proxyUrl: s.proxyUrl || "",
     };
-    // v1.4.0: GitHub Models retired (2026-07-30) — move saved configs off the dead endpoints.
-    if (DEAD_ENDPOINTS.test(out.baseUrl)) {
+    // v1.5.0 migration — move every legacy config to the zero-config provider:
+    // 1) dead GitHub Models endpoints (retired 2026-07-30)
+    // 2) OpenRouter default with an empty key (OpenRouter cannot work keyless -> Pollinations can)
+    const legacyOpenRouterEmpty = !out.apiKey && /openrouter\.ai/i.test(out.baseUrl);
+    if (DEAD_ENDPOINTS.test(out.baseUrl) || legacyOpenRouterEmpty) {
       out.baseUrl = DEFAULTS.baseUrl;
       out.model = DEFAULTS.model;
       settingsMigrated = true;
@@ -93,9 +92,9 @@ function newChat() {
 
 /**
  * Resolve the chat-completions endpoint from any common base URL:
- *   https://models.github.ai              -> .../inference/chat/completions  (GitHub Models)
- *   https://models.github.ai/inference    -> .../inference/chat/completions
- *   https://models.inference.ai.azure.com -> .../chat/completions            (legacy GitHub Models)
+ *   https://text.pollinations.ai          -> .../openai                      (Pollinations, no key)
+ *   https://text.pollinations.ai/openai   -> as-is
+ *   https://models.github.ai              -> .../inference/chat/completions  (GitHub Models, retired)
  *   https://api.openai.com/v1             -> .../v1/chat/completions
  *   https://openrouter.ai/api/v1          -> .../v1/chat/completions
  *   anything ending in /chat/completions  -> as-is
@@ -105,11 +104,80 @@ function chatEndpoint(base) {
   let b = (base || "").trim().replace(/\/+$/, "");
   if (!b) b = DEFAULTS.baseUrl;
   if (/\/chat\/completions$/.test(b)) return b;
+  if (/\/openai$/.test(b)) return b; // Pollinations chat endpoint
+  if (/pollinations\.ai$/i.test(b)) return b + "/openai";
   if (/\/inference$/.test(b)) return b + "/chat/completions";
   if (/\/v1$/.test(b)) return b + "/chat/completions";
   if (/models\.github\.ai$/i.test(b)) return b + "/inference/chat/completions";
-  if (/models\.inference\.ai\.azure\.com$/i.test(b)) return b + "/chat/completions";
   return b + "/v1/chat/completions";
+}
+
+/**
+ * Resolve the models-list endpoint (used to fill the model picker live from the server).
+ *   Pollinations -> https://text.pollinations.ai/models
+ *   OpenRouter   -> .../api/v1/models
+ *   OpenAI       -> .../v1/models
+ */
+function modelsEndpoint(base) {
+  let b = (base || "").trim().replace(/\/+$/, "");
+  if (!b) b = DEFAULTS.baseUrl;
+  if (/pollinations\.ai/i.test(b)) return "https://text.pollinations.ai/models";
+  if (/openrouter\.ai/i.test(b) || /api\.openai\.com/i.test(b)) return b + "/models";
+  if (/\/chat\/completions$/.test(b)) return b.replace(/\/chat\/completions$/, "/models");
+  if (/\/openai$/.test(b)) return b.replace(/\/openai$/, "/models");
+  return b + "/v1/models";
+}
+
+/** Only OpenRouter/OpenAI/custom endpoints need a key — Pollinations (default) does not. */
+function needsKey(base) {
+  return !/pollinations\.ai/i.test(base || "");
+}
+
+function isPollinations(base) {
+  return /pollinations\.ai/i.test(base || "");
+}
+
+/* ================= Live model list (auto from server) ================= */
+let modelList = [];              // normalized model ids from the server
+const modelListCache = new Map(); // baseUrl -> ids
+let modelsFetchSeq = 0;
+
+function normalizeModels(j) {
+  const arr = Array.isArray(j) ? j : (Array.isArray(j?.data) ? j.data : []);
+  const ids = arr
+    .map((m) => (typeof m === "string" ? m : m.name || m.id || ""))
+    .filter(Boolean);
+  // free/anonymous models first
+  const tier = (m) => (m && typeof m === "object" && m.tier === "anonymous" ? 0 : 1);
+  const withTier = arr.length && typeof arr[0] === "object"
+    ? ids.map((id, i) => ({ id, t: tier(arr[i]) }))
+    : ids.map((id) => ({ id, t: 1 }));
+  withTier.sort((a, b) => a.t - b.t);
+  return withTier.map((x) => x.id);
+}
+
+async function fetchModels(baseUrl) {
+  const base = (baseUrl || settings.baseUrl).trim();
+  if (modelListCache.has(base)) {
+    modelList = modelListCache.get(base);
+    return modelList;
+  }
+  const seq = ++modelsFetchSeq;
+  try {
+    const res = await fetch(requestUrl(modelsEndpoint(base)));
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const j = await res.json();
+    const ids = normalizeModels(j);
+    if (!ids.length) throw new Error("empty list");
+    modelListCache.set(base, ids);
+    if (seq !== modelsFetchSeq) return modelList; // a newer fetch superseded this one
+    modelList = ids;
+    return modelList;
+  } catch {
+    if (seq !== modelsFetchSeq) return modelList;
+    modelList = isPollinations(base) ? FALLBACK_MODELS.slice() : [];
+    return modelList;
+  }
 }
 
 /**
@@ -294,21 +362,40 @@ function closeSidebarMobile() {
 }
 
 /* ================= Settings modal ================= */
-function openSettings() {
+function renderModelPresets(loading) {
+  const presets = $("model-presets");
+  const status = $("models-status");
+  presets.innerHTML = "";
+  if (loading) {
+    if (status) status.textContent = "⏳ در حال گرفتن لیست مدل‌ها از سرور… · fetching model list…";
+    return;
+  }
+  if (status) status.textContent = modelList.length
+    ? "✅ لیست مدل‌ها زنده از سرور گرفته شد · list fetched live from the server"
+    : "";
+  const source = modelList.length ? modelList : [settings.model || DEFAULTS.model];
+  source.slice(0, 12).forEach((m) => {
+    const b = document.createElement("button");
+    b.className = "preset" + (m === settings.model ? " active" : "");
+    b.textContent = m;
+    b.onclick = () => {
+      $("set-model").value = m;
+      presets.querySelectorAll(".preset").forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+    };
+    presets.appendChild(b);
+  });
+}
+
+async function openSettings() {
   $("set-key").value = settings.apiKey;
   $("set-url").value = settings.baseUrl;
   $("set-model").value = settings.model;
   $("set-proxy").value = settings.proxyUrl || "";
-  const presets = $("model-presets");
-  presets.innerHTML = "";
-  MODEL_PRESETS.forEach((m) => {
-    const b = document.createElement("button");
-    b.className = "preset";
-    b.textContent = m;
-    b.onclick = () => ($("set-model").value = m);
-    presets.appendChild(b);
-  });
   $("settings-modal").hidden = false;
+  renderModelPresets(true);
+  await fetchModels($("set-url").value.trim() || DEFAULTS.baseUrl);
+  renderModelPresets(false);
 }
 function closeSettings() {
   $("settings-modal").hidden = true;
@@ -316,17 +403,19 @@ function closeSettings() {
 function providerName(baseUrl) {
   try {
     const h = new URL(baseUrl).hostname.replace(/^www\./, "");
+    if (/pollinations\.ai$/i.test(h)) return "Pollinations · بدون کلید · no key";
     if (/openrouter\.ai$/i.test(h)) return "OpenRouter";
     if (/models\.github\.ai|models\.inference\.ai\.azure\.com/i.test(h)) return "GitHub Models (retired)";
     return h;
-  } catch { return "OpenRouter"; }
+  } catch { return "Pollinations"; }
 }
 function updateModelChip() {
   $("model-chip").textContent = settings.model + " · " + providerName(settings.baseUrl);
 }
-function ensureKeyOrOpenSettings() {
-  if (!settings.apiKey.trim()) {
-    showError("برای شروع، کلید API (OpenRouter) را در تنظیمات وارد کن — رایگان از openrouter.ai/keys · Add your API key (OpenRouter) in Settings — free at openrouter.ai/keys.");
+function ensureProviderReady() {
+  // Zero-config default works with NO key. Only custom providers need one.
+  if (needsKey(settings.baseUrl) && !settings.apiKey.trim()) {
+    showError("سرویس انتخابی به کلید نیاز دارد — در تنظیمات کلید بگذار یا به پیش‌فرض (بدون کلید) برگرد · This provider needs an API key — add one in Settings or switch back to the keyless default.");
     openSettings();
     return false;
   }
@@ -364,10 +453,22 @@ function addMessage(role, content) {
   persistChats();
 }
 
+function authHeaders(extra) {
+  // No key stored -> no Authorization header (Pollinations default needs none).
+  const h = Object.assign({ "Content-Type": "application/json" }, extra || {});
+  const key = (settings.apiKey || "").trim();
+  if (key) h["Authorization"] = "Bearer " + key;
+  if (/openrouter\.ai/i.test(settings.baseUrl)) {
+    h["HTTP-Referer"] = location.origin || "https://matin-mohebi.github.io";
+    h["X-Title"] = "Matin AI";
+  }
+  return h;
+}
+
 async function send(text) {
   text = (text || "").trim();
   if (!text || streaming) return;
-  if (!ensureKeyOrOpenSettings()) return;
+  if (!ensureProviderReady()) return;
   hideError();
 
   const chat = ensureChat();
@@ -399,12 +500,7 @@ async function generate() {
     const res = await fetch(requestUrl(chatEndpoint(settings.baseUrl)), {
       method: "POST",
       signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + settings.apiKey.trim(),
-        "HTTP-Referer": location.origin || "https://matin-mohebi.github.io",
-        "X-Title": "Matin AI",
-      },
+      headers: authHeaders(),
       body: JSON.stringify({
         model: settings.model.trim() || DEFAULTS.model,
         messages: history,
@@ -480,11 +576,11 @@ async function generate() {
       let hint = "";
       if (e instanceof TypeError) {
         if (IS_CAPACITOR) {
-          hint = " — اتصال برقرار نشد؛ اینترنت و توکن را چک کن · Network failed — check connection and token.";
+          hint = " — اتصال برقرار نشد؛ اینترنت را چک کن · Network failed — check connection.";
         } else if (IS_ELECTRON) {
-          hint = " — اتصال برقرار نشد؛ اینترنت و توکن را چک کن · Network failed — check connection and token.";
+          hint = " — اتصال برقرار نشد؛ اینترنت را چک کن · Network failed — check connection.";
         } else {
-          hint = " — اتصال مستقیم برقرار نشد (CORS یا شبکه). OpenRouter مستقیم کار می‌کند؛ آدرس سرور را دست نزن، کلید را چک کن، یا پراکسی Cloudflare (README) را در تنظیمات بگذار · Direct call failed (CORS or network). OpenRouter works browser-direct — keep the default URL, check your key, or set a CORS proxy from the README.";
+          hint = " — اتصال برقرار نشد. سرویس پیش‌فرض (Pollinations) از مرورگر مستقیم کار می‌کند؛ اینترنت را چک کن یا کمی بعد دوباره امتحان کن · Connection failed — the default provider works browser-direct; check your network or retry shortly.";
         }
       }
       showError("❌ " + (e.message || "ارتباط برقرار نشد") + hint);
@@ -508,7 +604,7 @@ function regenerate() {
     persistChats();
     renderAll();
   }
-  if (!ensureKeyOrOpenSettings()) return;
+  if (!ensureProviderReady()) return;
   generate();
 }
 
@@ -563,6 +659,13 @@ $("btn-eye").onclick = () => {
   const k = $("set-key");
   k.type = k.type === "password" ? "text" : "password";
 };
+$("set-url").addEventListener("change", async () => {
+  // user switched provider -> refetch its model list live
+  modelList = [];
+  renderModelPresets(true);
+  await fetchModels($("set-url").value.trim() || DEFAULTS.baseUrl);
+  renderModelPresets(false);
+});
 $("btn-save-settings").onclick = () => {
   settings.apiKey = $("set-key").value.trim();
   settings.baseUrl = $("set-url").value.trim() || DEFAULTS.baseUrl;
@@ -582,21 +685,21 @@ $("btn-test").onclick = async () => {
   const proxy = $("set-proxy").value.trim();
   const prevProxy = settings.proxyUrl;
   const prevKey = settings.apiKey;
-  settings.proxyUrl = proxy; settings.apiKey = key; // temp for requestUrl()
+  settings.proxyUrl = proxy; settings.apiKey = key; // temp for requestUrl()/authHeaders()
   out.className = "test-result show";
-  out.textContent = IS_CAPACITOR || IS_ELECTRON ? "⏳ در حال تست اتصال…" : "⏳ در حال تست اتصال (مستقیم یا با پراکسی)…";
+  out.textContent = "⏳ در حال تست اتصال…";
   const t0 = performance.now();
   try {
     const res = await fetch(requestUrl(chatEndpoint(baseUrl)), {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
-      body: JSON.stringify({ model, messages: [{ role: "user", content: "سلام — فقط بگو: متصل است" }], max_tokens: 20, stream: false }),
+      headers: authHeaders(),
+      body: JSON.stringify({ model, messages: [{ role: "user", content: "سلام — فقط بگو: متصل است" }], max_tokens: 40, stream: false }),
     });
     const ms = Math.round(performance.now() - t0);
     if (!res.ok) {
       let d = "";
       try { d = (await res.json())?.error?.message || ""; } catch {}
-      out.textContent = "❌ HTTP " + res.status + (d ? " — " + d.slice(0, 140) : "") + (res.status === 401 ? " (توکن نامعتبر است · invalid token)" : res.status === 404 ? " (مدل پیدا نشد · unknown model)" : res.status === 429 ? " (محدودیت نرخ · rate limited)" : "");
+      out.textContent = "❌ HTTP " + res.status + (d ? " — " + d.slice(0, 140) : "") + (res.status === 401 ? " (کلید نامعتبر است · invalid key)" : res.status === 404 ? " (مدل پیدا نشد · unknown model)" : res.status === 429 ? " (محدودیت نرخ — کمی صبر کن · rate limited)" : "");
     } else {
       const j = await res.json();
       const c = (j.choices?.[0]?.message?.content || "").trim().slice(0, 60);
@@ -605,8 +708,8 @@ $("btn-test").onclick = async () => {
   } catch (e) {
     const viaProxy = !!(IS_ELECTRON || proxy);
     out.textContent = viaProxy
-      ? "❌ اتصال برقرار نشد — اینترنت/توکن/آدرس پراکسی را چک کن · Connection failed — check network, token or proxy URL."
-      : "❌ مرورگر اجازه اتصال مستقیم نمی‌دهد (CORS) — پراکسی بساز یا از اپ دسکتاپ/iOS استفاده کن · CORS blocked — set a proxy (README) or use the desktop/iOS app.";
+      ? "❌ اتصال برقرار نشد — اینترنت/آدرس پراکسی را چک کن · Connection failed — check network or proxy URL."
+      : "❌ اتصال برقرار نشد — اینترنت را چک کن یا بعداً دوباره امتحان کن · Connection failed — check network or retry.";
   } finally {
     settings.proxyUrl = prevProxy; settings.apiKey = prevKey;
   }
@@ -644,12 +747,12 @@ function hideError() {
   if (window.innerWidth <= 860) {
     $("sidebar").classList.add("hidden"); // mobile: start with drawer closed
   }
+  // warm up: fetch the live model list in the background (no UI blocking)
+  fetchModels(settings.baseUrl);
   if (settingsMigrated) {
-    // GitHub Models retired on 2026-07-30 — tell the user we moved them automatically.
-    showError("⚠️ سرویس GitHub Models تعطیل شده (۳۰ ژوئیه ۲۰۲۶). اتصالت خودکار به OpenRouter (رایگان) منتقل شد — فقط کلید رایگان از openrouter.ai/keys بگیر و در تنظیمات بگذار · GitHub Models retired; moved to OpenRouter automatically — get a free key at openrouter.ai/keys.");
-  } else if (!settings.apiKey && window.matchMedia("(min-width: 861px)").matches) {
-    // first run hint, non-blocking
-    showError("👋 خوش آمدی! آدرس سرور و مدل خودکار پر شده‌اند — فقط یک کلید رایگان از openrouter.ai/keys بگیر و در تنظیمات بگذار · Welcome! Server & model are pre-configured — just add a free OpenRouter key from openrouter.ai/keys.");
+    showError("⚙️ تنظیمات قدیمی به‌صورت خودکار منتقل شد — حالا بدون توکن و بدون ثبت‌نام کار می‌کند · Old settings migrated automatically — now works with no token and no signup.");
+  } else if (window.matchMedia("(min-width: 861px)").matches) {
+    showError("👋 خوش آمدی! همه‌چیز خودکار است — بدون توکن، بدون ثبت‌نام؛ فقط بنویس · Welcome! Everything is automatic — no token, no signup; just type.");
   }
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
