@@ -87,8 +87,10 @@
 **دستیار هوشمند فارسی با هوش مصنوعی گیت‌هاب — Persian AI assistant powered by GitHub Models**
 پاسخ‌های استریم زنده مثل ChatGPT · تاریخچه گفتگوها · رندر مارک‌داون · فقط با توکن گیت‌هاب، رایگان
 
-`Kotlin` `Jetpack Compose` `PWA` `HTML/CSS/JS` `Neutralino` `GitHub Models`
-[🌐 نسخه وب (آیفون/اندروید/PC)](https://matin-mohebi.github.io/Matin-mohebi/) · [🪟🐧 ویندوز + لینوکس + اندروید — دانلود](https://github.com/Matin-mohebi/Matin-mohebi/releases) · [📖 راهنما](https://github.com/Matin-mohebi/Matin-mohebi/blob/main/MatinAIWeb/README.md)
+`Kotlin` `Jetpack Compose` `PWA` `HTML/CSS/JS` `Electron` `Capacitor` `GitHub Models`
+[🌐 نسخه وب (بدون نصب)](https://matin-mohebi.github.io/Matin-mohebi/) · [📱⬇️ دانلود همه‌پلتفرم — اندروید + ویندوز + لینوکس + مک + iOS](https://github.com/Matin-mohebi/Matin-mohebi/releases) · [📖 راهنما](https://github.com/Matin-mohebi/Matin-mohebi/blob/main/MatinAIWeb/README.md)
+
+> 📲 **روی آیفون (iPhone):** یا [نسخه وب](https://matin-mohebi.github.io/Matin-mohebi/) رو از Safari با «Add to Home Screen» مثل اپ نصب کن، یا فایل `MatinAI-iOS-unsigned.ipa` رو از Releases بگیر و با [Sideloadly](https://sideloadly.io) یا [AltStore](https://altstore.io) نصبش کن (کد سورس Xcode کامل در پوشه `MatinAIiOS`).
 
 </div>
 

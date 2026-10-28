@@ -114,9 +114,17 @@
         <div class="model-presets" id="model-presets"></div>
       </div>
 
-      <div class="modal-actions">
+      <label class="field">
+        <span class="field-label">پراکسی CORS (اختیاری — فقط برای نسخه وب) <small>CORS proxy — web only</small></span>
+        <input id="set-proxy" type="url" spellcheck="false" placeholder="https://your-worker.workers.dev/?target={url}">
+        <span class="field-hint">مرورگرها اجازه اتصال مستقیم به GitHub Models را ندارند (CORS). از اپ دسکتاپ/iOS نیازی نیست — برای وب، یک Worker رایگان بساز: <a href="https://github.com/Matin-mohebi/Matin-mohebi/blob/main/MatinAIWeb/proxy/README.md" target="_blank" rel="noopener">راهنما · Guide</a> — از {url} به‌عنوان جای‌نگهدار استفاده کن.</span>
+      </label>
+
+      <div class="modal-actions modal-actions-col">
+        <button id="btn-test" class="btn-secondary">🔌 تست اتصال · Test connection</button>
         <button id="btn-save-settings" class="btn-primary">ذخیره · Save</button>
       </div>
+      <div id="test-result" class="test-result" hidden></div>
       <p class="security-note">🔒 کلید فقط روی همین دستگاه ذخیره می‌شود (localStorage) · Your key stays on this device only.</p>
     </div>
   </div>

@@ -39,14 +39,29 @@ The web version of Matin AI with a ChatGPT/Claude-style UI — a lightweight PWA
 > 💡 اپ اندروید نیتیو هم از [Releases](https://github.com/Matin-mohebi/Matin-mohebi/releases) قابل نصب است.
 > A native Android app is also available in Releases.
 
+### 📱 Native iOS app | اپ نیتیو iOS (Capacitor)
+
+سورس کامل پروژه Xcode در پوشه [`MatinAIiOS`](../MatinAIiOS/) است (Capacitor 8 · Bundle ID: `ir.matincode.matinai`).
+The complete Xcode project source lives in [`MatinAIiOS`](../MatinAIiOS/) (Capacitor 8).
+
+**روش ۱ — IPA آماده (بدون نیاز به مک):** فایل `MatinAI-iOS-unsigned.ipa` را از [Releases](https://github.com/Matin-mohebi/Matin-mohebi/releases) بگیر و با [Sideloadly](https://sideloadly.io) یا [AltStore](https://altstore.io) روی آیفون نصب کن (با کابل و اپل‌آیدی رایگان — امضای ۷ روزه).
+**Option 1 — ready-made IPA:** grab `MatinAI-iOS-unsigned.ipa` from Releases and sideload it with Sideloadly or AltStore (free Apple ID, 7-day signing).
+
+**روش ۲ — ساخت با Xcode:** پوشه `MatinAIiOS/ios` را در Xcode (روی مک) باز کن، Team را در Signing انتخاب کن و Run بزن — یا خودت Archive بگیر و IPA بساز.
+**Option 2 — build with Xcode:** open `MatinAIiOS/ios` in Xcode on a Mac, set your Team in Signing and hit Run.
+
+ساخت خودکار IPA در هر پوشش، با GitHub Actions (runner مک) انجام می‌شود · IPA builds automatically on every push via GitHub Actions (macOS runner).
+
 ## 🖥️ Desktop | دسکتاپ (ویندوز / لینوکس / مک)
 
 از [Releases](https://github.com/Matin-mohebi/Matin-mohebi/releases) دانلود کن:
 Download from Releases:
 
-- `MatinAI-Windows-x64.zip` → باز کن و `matin-ai-win_x64.exe` را اجرا کن
-- `MatinAI-Linux-x64.zip` → `chmod +x matin-ai-linux_x64 && ./matin-ai-linux_x64`
-- `MatinAI-macOS.zip` → binary + resources.neu کنار هم باشند
+- `MatinAI-Windows-Setup-x64.exe` → نصب‌کننده ویندوز (یا `MatinAI-Windows-x64.zip` پرتابل)
+- `MatinAI-Linux-x64.AppImage` → `chmod +x *.AppImage && ./*.AppImage`
+- `MatinAI-macOS-arm64.zip` / `MatinAI-macOS-x64.zip` → مک (Apple Silicon / Intel)
+
+> دسکتاپ از Electron با پروکسی داخلی استفاده می‌کند؛ برای همین **بدون مشکل CORS** به GitHub Models وصل می‌شود. جزئیات: [`MatinAIDesktop/README.md`](../MatinAIDesktop/README.md)
 
 دیتای اپ (چت‌ها و کلید) روی خود دستگاه ذخیره می‌شود · Data stays on your device.
 
@@ -62,6 +77,13 @@ The default backend is **GitHub Models**:
 | API Key | توکن گیت‌هاب شما |
 
 مدل‌های پیشنهادی: `openai/gpt-4.1-mini` · `openai/gpt-4o-mini` · `meta/Llama-4-Scout-17B-16E-Instruct` · `deepseek/DeepSeek-V3-0324`
+
+## ⚠️ CORS در نسخه وب | CORS on the web
+
+مرورگرها اجازه اتصال مستقیم به `models.github.ai` را ندارند (CORS). اگر از نسخه وب/PWA استفاده می‌کنی:
+- **آسان‌ترین راه:** از اپ‌های نیتیو (دسکتاپ / iOS / اندروید) استفاده کن — نیاز به پراکسی ندارند.
+- **یا** یک Worker رایگان Cloudflare بساز و آدرسش را در تنظیمات وارد کن → راهنمای کامل: [`proxy/README.md`](./proxy/README.md)
+- دکمه **«تست اتصال»** در تنظیمات وضعیت اتصال را دقیق نشان می‌دهد (موفق/خطا + دلیل).
 
 ## 🛠️ Run locally | اجرای محلی
 

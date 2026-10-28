@@ -21,6 +21,14 @@ const MODEL_PRESETS = [
 const LS_CHATS = "matin_ai_chats_v1";
 const LS_SETTINGS = "matin_ai_settings_v1";
 
+/* ================= Runtime detection =================
+ * - Electron: main process proxies requests via matinai:// protocol (no CORS, full streaming)
+ * - Capacitor (iOS/Android native): CapacitorHttp plugin patches fetch -> native HTTP (no CORS, no SSE)
+ * - Plain browser (web/PWA): may hit CORS on some providers -> optional proxy in Settings
+ */
+const IS_ELECTRON = /Electron/i.test(navigator.userAgent) || !!window.matinDesktop;
+const IS_CAPACITOR = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform());
+
 /* ================= State ================= */
 let settings = loadSettings();
 let chats = loadChats();
@@ -38,9 +46,10 @@ function loadSettings() {
       apiKey: s.apiKey || "",
       baseUrl: s.baseUrl || DEFAULTS.baseUrl,
       model: s.model || DEFAULTS.model,
+      proxyUrl: s.proxyUrl || "",
     };
   } catch {
-    return { apiKey: "", baseUrl: DEFAULTS.baseUrl, model: DEFAULTS.model };
+    return { apiKey: "", baseUrl: DEFAULTS.baseUrl, model: DEFAULTS.model, proxyUrl: "" };
   }
 }
 function saveSettings() {
@@ -88,6 +97,28 @@ function chatEndpoint(base) {
   if (/models\.github\.ai$/i.test(b)) return b + "/inference/chat/completions";
   if (/models\.inference\.ai\.azure\.com$/i.test(b)) return b + "/chat/completions";
   return b + "/v1/chat/completions";
+}
+
+/**
+ * Wrap an endpoint URL for the current runtime:
+ * - Electron: matinai://<host>/<path>  (main-process proxy, CORS-free, streaming)
+ * - Custom CORS proxy set in Settings:
+ *     contains "{url}"  -> replaced with encodeURIComponent(endpoint)
+ *     ends with "="     -> endpoint (percent-encoded) is appended
+ *     otherwise         -> proxy prefix + endpoint (path-style, e.g. cors.sh)
+ */
+function requestUrl(endpoint) {
+  if (IS_ELECTRON && /^https?:\/\//i.test(endpoint)) {
+    try {
+      const u = new URL(endpoint);
+      return "matinai://" + u.host + u.pathname + u.search;
+    } catch { /* fall through */ }
+  }
+  const p = (settings.proxyUrl || "").trim();
+  if (!p || !/^https?:\/\//i.test(endpoint)) return endpoint;
+  if (p.includes("{url}")) return p.replace("{url}", encodeURIComponent(endpoint));
+  if (/=$/.test(p)) return p + encodeURIComponent(endpoint);
+  return p.replace(/\/+$/, "") + "/" + endpoint;
 }
 
 /* ================= Markdown ================= */
@@ -254,6 +285,7 @@ function openSettings() {
   $("set-key").value = settings.apiKey;
   $("set-url").value = settings.baseUrl;
   $("set-model").value = settings.model;
+  $("set-proxy").value = settings.proxyUrl || "";
   const presets = $("model-presets");
   presets.innerHTML = "";
   MODEL_PRESETS.forEach((m) => {
@@ -343,7 +375,7 @@ async function generate() {
     const history = [{ role: "system", content: DEFAULTS.systemPrompt }];
     chat.messages.slice(-24).forEach((m) => history.push({ role: m.role, content: m.content }));
 
-    const res = await fetch(chatEndpoint(settings.baseUrl), {
+    const res = await fetch(requestUrl(chatEndpoint(settings.baseUrl)), {
       method: "POST",
       signal: controller.signal,
       headers: {
@@ -353,7 +385,7 @@ async function generate() {
       body: JSON.stringify({
         model: settings.model.trim() || DEFAULTS.model,
         messages: history,
-        stream: true,
+        stream: !IS_CAPACITOR, // CapacitorHttp buffers the whole response; SSE is unavailable there
       }),
     });
 
@@ -424,7 +456,13 @@ async function generate() {
       root.remove();
       let hint = "";
       if (e instanceof TypeError) {
-        hint = " — احتمالاً مشکل شبکه یا CORS است؛ اتصال اینترنت/توکن را چک کن یا Base URL را عوض کن (CORS/network issue — check connection, token or Base URL).";
+        if (IS_CAPACITOR) {
+          hint = " — اتصال برقرار نشد؛ اینترنت و توکن را چک کن · Network failed — check connection and token.";
+        } else if (IS_ELECTRON) {
+          hint = " — اتصال برقرار نشد؛ اینترنت و توکن را چک کن · Network failed — check connection and token.";
+        } else {
+          hint = " — مرورگر اجازه اتصال مستقیم نمی‌دهد (CORS) یا شبکه قطع است. راه‌حل‌ها: ۱) از اپ دسکتاپ/iOS/اندروید استفاده کن ۲) پراکسی رایگان Cloudflare را از بخش راهنمای README بساز و در تنظیمات وارد کن · Browser blocked the direct call (CORS). Use the desktop/mobile app, or set a CORS proxy in Settings — see README.";
+        }
       }
       showError("❌ " + (e.message || "ارتباط برقرار نشد") + hint);
     }
@@ -498,17 +536,57 @@ $("btn-new-chat").onclick = () => {
   input.focus();
 };
 $("btn-settings").onclick = openSettings;
+$("btn-eye").onclick = () => {
+  const k = $("set-key");
+  k.type = k.type === "password" ? "text" : "password";
+};
 $("btn-save-settings").onclick = () => {
   settings.apiKey = $("set-key").value.trim();
   settings.baseUrl = $("set-url").value.trim() || DEFAULTS.baseUrl;
   settings.model = $("set-model").value.trim() || DEFAULTS.model;
+  settings.proxyUrl = $("set-proxy").value.trim();
   saveSettings();
   closeSettings();
   hideError();
 };
-$("btn-eye").onclick = () => {
-  const k = $("set-key");
-  k.type = k.type === "password" ? "text" : "password";
+
+/* ---- Test connection ---- */
+$("btn-test").onclick = async () => {
+  const out = $("test-result");
+  const key = $("set-key").value.trim();
+  const model = $("set-model").value.trim() || DEFAULTS.model;
+  const baseUrl = $("set-url").value.trim() || DEFAULTS.baseUrl;
+  const proxy = $("set-proxy").value.trim();
+  const prevProxy = settings.proxyUrl;
+  const prevKey = settings.apiKey;
+  settings.proxyUrl = proxy; settings.apiKey = key; // temp for requestUrl()
+  out.className = "test-result show";
+  out.textContent = IS_CAPACITOR || IS_ELECTRON ? "⏳ در حال تست اتصال…" : "⏳ در حال تست اتصال (مستقیم یا با پراکسی)…";
+  const t0 = performance.now();
+  try {
+    const res = await fetch(requestUrl(chatEndpoint(baseUrl)), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+      body: JSON.stringify({ model, messages: [{ role: "user", content: "سلام — فقط بگو: متصل است" }], max_tokens: 20, stream: false }),
+    });
+    const ms = Math.round(performance.now() - t0);
+    if (!res.ok) {
+      let d = "";
+      try { d = (await res.json())?.error?.message || ""; } catch {}
+      out.textContent = "❌ HTTP " + res.status + (d ? " — " + d.slice(0, 140) : "") + (res.status === 401 ? " (توکن نامعتبر است · invalid token)" : res.status === 404 ? " (مدل پیدا نشد · unknown model)" : res.status === 429 ? " (محدودیت نرخ · rate limited)" : "");
+    } else {
+      const j = await res.json();
+      const c = (j.choices?.[0]?.message?.content || "").trim().slice(0, 60);
+      out.textContent = "✅ متصل! · Connected — " + ms + "ms" + (c ? " — «" + c + "»" : "");
+    }
+  } catch (e) {
+    const viaProxy = !!(IS_ELECTRON || proxy);
+    out.textContent = viaProxy
+      ? "❌ اتصال برقرار نشد — اینترنت/توکن/آدرس پراکسی را چک کن · Connection failed — check network, token or proxy URL."
+      : "❌ مرورگر اجازه اتصال مستقیم نمی‌دهد (CORS) — پراکسی بساز یا از اپ دسکتاپ/iOS استفاده کن · CORS blocked — set a proxy (README) or use the desktop/iOS app.";
+  } finally {
+    settings.proxyUrl = prevProxy; settings.apiKey = prevKey;
+  }
 };
 document.querySelectorAll("[data-close]").forEach((el) => (el.onclick = closeSettings));
 document.addEventListener("keydown", (e) => {

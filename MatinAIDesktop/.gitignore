@@ -1,7 +1,4 @@
-# Neutralino build artifacts
-bin/
-.tmp/
+node_modules/
+app-ui/
 dist/
-web/
-extensions/
-*.neu
+.DS_Store
