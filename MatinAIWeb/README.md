@@ -9,6 +9,16 @@
 نسخه وب اپ Matin AI با ظاهری شبیه ChatGPT و Claude — یک اپ PWA سبک که روی هر دستگاهی اجرا می‌شود.
 The web version of Matin AI with a ChatGPT/Claude-style UI — a lightweight PWA that runs anywhere.
 
+## 🏷️ نسخه و وضعیت انتشار | Version
+
+- **آخرین انتشار:** [Matin AI v1.6.0](https://github.com/Matin-mohebi/Matin-mohebi/releases/tag/v1.6.0) — ۲۸ اکتبر ۲۰۲۶
+- **نسخهٔ Android:** 1.6.0 · **versionCode:** 7 · حداقل Android 6.0 (API 23)
+- **وب/PWA:** نسخهٔ آنلاین همین مخزن؛ بدون نصب و قابل افزودن به صفحهٔ اصلی موبایل
+- **دانلود اندروید و دسکتاپ:** [صفحهٔ Releases](https://github.com/Matin-mohebi/Matin-mohebi/releases)
+- **تاریخچهٔ نسخه‌ها:** [تمام Releaseها](https://github.com/Matin-mohebi/Matin-mohebi/releases)
+
+در انتشارهای بعدی، APK نسخهٔ Release فقط با keystore و اطلاعات امضای اختصاصی ساخته می‌شود. در نبود کلید، ساخت Debug برای آزمایش باقی می‌ماند و نسخهٔ پایدار محسوب نمی‌شود. فایل IPA فعلی unsigned است و برای نصب به امضای معتبر اپل نیاز دارد.
+
 ## ✨ Features | امکانات
 
 - 🧠 **موتور تعویض خودکار هوش مصنوعی** — بر اساس نوع سوال (کد/ریاضی/ترجمه/خلاصه/نوشتن/عمومی) بهترین مدل انتخاب می‌شود · Smart auto-routing picks the best AI per question
