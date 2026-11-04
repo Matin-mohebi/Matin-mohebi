@@ -19,6 +19,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -328,6 +330,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
     val bg = Color(0xFF10111A)
     val panel = Color(0xFF191B28)
     val accent = Color(0xFF9B8CFF)
+    val clipboardManager = LocalClipboardManager.current
 
     fun persist() {
         activeId?.let { id ->
@@ -376,7 +379,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
         error = ""
     }
 
-    fun streamOnce(cand: Cand, history: JSONArray, idx: Int, acc: StringBuilder) {
+    suspend fun streamOnce(cand: Cand, history: JSONArray, acc: StringBuilder): String {
         val body = JSONObject()
             .put("model", cand.model)
             .put("messages", history)
@@ -387,7 +390,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
         val key = apiKey.trim()
         if (key.isNotBlank() && needsKey(cand.baseUrl)) reqBuilder.header("Authorization", "Bearer $key")
         val call = client.newCall(reqBuilder.build())
-        currentCall = call
+        withContext(Dispatchers.Main) { currentCall = call }
         call.execute().use { response ->
             if (!response.isSuccessful) {
                 val text = response.body?.string().orEmpty()
@@ -411,15 +414,13 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                             ?.optJSONObject("delta")?.optString("content")
                         if (!delta.isNullOrEmpty()) {
                             acc.append(delta)
-                            if (idx < messages.size) {
-                                messages[idx] = ChatMessage("assistant", acc.toString())
-                            }
                         }
                     } catch (_: Exception) { }
                 }
             }
         }
         if (acc.isBlank()) throw IllegalStateException("پاسخ خالی بود")
+        return acc.toString()
     }
 
     fun startGeneration(startAt: Int = 0) {
@@ -427,52 +428,55 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
         busy = true
         messages.add(ChatMessage("assistant", ""))
         val idx = messages.lastIndex
+        val generationChatId = activeId
+        // Snapshot Compose state on the main thread; never read/write SnapshotStateList on IO.
+        val snapshot = messages.take(idx).toList()
+        val lastUser = snapshot.lastOrNull { it.role == "user" }?.text.orEmpty()
+        val history = JSONArray().apply {
+            put(JSONObject().put("role", "system").put("content", SYSTEM_PROMPT))
+            snapshot.takeLast(24).forEach {
+                if (it.text.isNotBlank()) put(JSONObject().put("role", it.role).put("content", it.text))
+            }
+        }
+        val candidates = buildCandidates(lastUser, autoMode, baseUrl, model, pools.toMap())
+        val chain = if (startAt > 0 && startAt < candidates.size) candidates.drop(startAt) else candidates
         scope.launch {
             try {
-                withContext(Dispatchers.IO) {
-                    val lastUser = messages.subList(0, idx).lastOrNull { it.role == "user" }?.text ?: ""
-                    val history = JSONArray()
-                    history.put(JSONObject().put("role", "system").put("content", SYSTEM_PROMPT))
-                    messages.subList(0, idx).takeLast(24).forEach {
-                        if (it.text.isNotBlank()) history.put(JSONObject().put("role", it.role).put("content", it.text))
-                    }
-                    // ---- SMART ROUTING: ordered candidate chain, silent auto-failover ----
-                    val candidates = buildCandidates(lastUser, autoMode, baseUrl, model, pools)
-                    val chain = if (startAt > 0 && startAt < candidates.size) candidates.drop(startAt) else candidates
-                    var answeredVia = ""
+                val result = withContext(Dispatchers.IO) {
+                    var answered: Pair<String, String>? = null
                     var lastErr: Exception? = null
                     for (cand in chain.take(5)) {
                         try {
-                            val acc = StringBuilder()
-                            streamOnce(cand, history, idx, acc)
-                            val finalText = acc.toString().ifBlank { throw IllegalStateException("پاسخ خالی بود") }
-                            answeredVia = providerLabelOf(cand.baseUrl) + " · " + cand.model
-                            if (idx < messages.size) messages[idx] = ChatMessage("assistant", finalText, answeredVia)
+                            val answer = streamOnce(cand, history, StringBuilder())
+                            answered = answer to (providerLabelOf(cand.baseUrl) + " · " + cand.model)
                             lastErr = null
                             break
                         } catch (ce: Exception) {
                             if (ce.message?.contains("Canceled", true) == true || ce.message?.contains("abort", true) == true) throw ce
-                            lastErr = ce // silently switch to the next AI
+                            lastErr = ce
                         }
                     }
-                    lastErr?.let { throw IllegalStateException("همه سرویس‌ها امتحان شدند · " + (it.message ?: "failed")) }
-                    activeId?.let { id -> chats.find { it.id == id }?.let { it.updatedAt = System.currentTimeMillis() } }
+                    answered ?: throw IllegalStateException("همه سرویس‌ها امتحان شدند · " + (lastErr?.message ?: "پاسخ دریافت نشد"))
+                }
+                if (activeId == generationChatId && idx < messages.size) {
+                    messages[idx] = ChatMessage("assistant", result.first, result.second)
+                    generationChatId?.let { id -> chats.find { it.id == id }?.let { it.updatedAt = System.currentTimeMillis() } }
                     persist()
                 }
             } catch (e: Exception) {
-                currentCall = null
-                val partial = if (idx < messages.size) messages.getOrNull(idx)?.text.orEmpty() else ""
-                when {
-                    partial.isBlank() && idx < messages.size && messages.size > idx -> {
-                        messages.removeAt(idx)
+                if (activeId == generationChatId) {
+                    if (idx < messages.size) {
+                        val partial = messages[idx].text
+                        if (partial.isBlank()) messages.removeAt(idx)
+                        else messages[idx] = ChatMessage("assistant", partial)
                     }
-                    else -> if (idx < messages.size) messages[idx] = ChatMessage("assistant", partial)
-                }
-                persist()
-                if (e.message?.contains("Canceled", true) != true && e.message?.contains("abort", true) != true) {
-                    error = e.message ?: "ارتباط با سرویس برقرار نشد · Network error."
+                    persist()
+                    if (e.message?.contains("Canceled", true) != true && e.message?.contains("abort", true) != true) {
+                        error = e.message ?: "ارتباط با سرویس برقرار نشد · Network error."
+                    }
                 }
             } finally {
+                currentCall = null
                 busy = false
             }
         }
@@ -484,7 +488,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
         if (text.isBlank() || busy) return
         error = ""
         // v1.5.0 — no key required for the default provider; only custom ones need one
-        if (needsKey(baseUrl) && apiKey.isBlank()) {
+        if (!autoMode && needsKey(baseUrl) && apiKey.isBlank()) {
             error = "سرویس انتخابی به کلید نیاز دارد — در تنظیمات کلید بگذار یا به پیش‌فرض (بدون کلید) برگرد. · This provider needs an API key — add one or switch back to the keyless default."
             showSettings = true
             return
@@ -523,7 +527,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                     Spacer(Modifier.height(8.dp))
                 }
                 LazyColumn(Modifier.fillMaxWidth()) {
-                    itemsIndexed(chats.sortedByDescending { it.updatedAt }) { _, chat ->
+                    itemsIndexed(chats.sortedByDescending { it.updatedAt }, key = { _, chat -> chat.id }) { _, chat ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -699,7 +703,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    itemsIndexed(messages) { _, message ->
+                    itemsIndexed(messages, key = { index, message -> "${message.role}_$index" }) { _, message ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = if (message.role == "user") Arrangement.Start else Arrangement.End
@@ -721,7 +725,35 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                                     Text("🧠 " + message.via, color = Color(0xFF8F96B3), fontSize = 9.sp)
                                 }
                                 Spacer(Modifier.height(4.dp))
-                                Text(message.text, color = Color.White, fontSize = 15.sp)
+                                if (message.role == "assistant" && message.text.isBlank() && busy) {
+                                    Text("در حال آماده‌سازی پاسخ…", color = Color.LightGray, fontSize = 13.sp)
+                                } else {
+                                    Text(message.text, color = Color.White, fontSize = 15.sp)
+                                }
+                                if (message.role == "assistant" && message.text.isNotBlank()) {
+                                    TextButton(
+                                        onClick = { clipboardManager.setText(AnnotatedString(message.text)) },
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                                    ) { Text("کپی پاسخ", color = Color(0xFFB8AEFF), fontSize = 11.sp) }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (messages.size <= 1 && !busy) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf("برای من ایده بده", "یک کد پایتون بنویس", "این متن را خلاصه کن", "برای امروز برنامه‌ریزی کن").forEach { suggestion ->
+                            Surface(
+                                shape = RoundedCornerShape(18.dp),
+                                color = Color(0xFF23263A),
+                                border = BorderStroke(1.dp, Color(0xFF3A3D52)),
+                                modifier = Modifier.clickable { send(suggestion) }
+                            ) {
+                                Text(suggestion, color = Color(0xFFCBC6F7), fontSize = 11.sp, modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp))
                             }
                         }
                     }

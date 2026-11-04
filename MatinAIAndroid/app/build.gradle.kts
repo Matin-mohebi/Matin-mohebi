@@ -7,8 +7,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-// Release signing: if keystore.properties exists (local machine), sign with the
-// real release key; otherwise fall back to the debug key so CI builds stay installable.
+// Release signing: only a complete keystore.properties configuration may
+// sign a release. Without it, the release variant remains unsigned; debug builds
+// remain available for local testing.
 // keystore.properties and *.jks are git-ignored — never commit secrets.
 val keystorePropsFile = rootProject.file("keystore.properties")
 val keystoreProps = Properties().apply {
@@ -23,8 +24,8 @@ android {
         applicationId = "ir.matincode.matinai"
         minSdk = 23
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.6.0"
+        versionCode = 8
+        versionName = "1.6.1"
     }
 
     buildFeatures { compose = true }
@@ -37,7 +38,12 @@ android {
         jvmTarget = "17"
     }
 
-    if (keystorePropsFile.exists()) {
+    val releaseSigningConfigured = keystorePropsFile.exists() &&
+        listOf("storeFile", "storePassword", "keyAlias", "keyPassword").all {
+            !keystoreProps.getProperty(it).isNullOrBlank()
+        }
+
+    if (releaseSigningConfigured) {
         signingConfigs {
             create("release") {
                 storeFile = rootProject.file(keystoreProps["storeFile"] as String)
@@ -51,10 +57,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = if (keystorePropsFile.exists())
-                signingConfigs.getByName("release")
-            else
-                signingConfigs.getByName("debug")
+            signingConfig = if (releaseSigningConfigured) signingConfigs.getByName("release") else null
         }
     }
 

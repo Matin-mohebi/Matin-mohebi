@@ -1,3 +1,5 @@
+**Android build:** `1.6.1` (`versionCode 8`) — next build; latest published release remains `v1.6.0` until a signed release is created.
+
 # 🤖 Matin AI for Android | متین AI برای اندروید
 
 <div align="center">
