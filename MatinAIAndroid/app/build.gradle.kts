@@ -54,7 +54,7 @@ android {
             signingConfig = if (keystorePropsFile.exists())
                 signingConfigs.getByName("release")
             else
-                signingConfigs.getByName("debug")
+                null
         }
     }
 
