@@ -51,13 +51,13 @@ jobs:
           MATIN_KEY_ALIAS: ${{ secrets.MATIN_KEY_ALIAS }}
           MATIN_KEY_PASSWORD: ${{ secrets.MATIN_KEY_PASSWORD }}
         run: |
-          if [ -n "$MATIN_KEYSTORE_B64" ]; then
+          if [ -n "$MATIN_KEYSTORE_B64" ] && [ -n "$MATIN_KEY_STORE_PASSWORD" ] && [ -n "$MATIN_KEY_ALIAS" ] && [ -n "$MATIN_KEY_PASSWORD" ]; then
             echo "$MATIN_KEYSTORE_B64" | base64 -d > MatinAIAndroid/matin-ai-release.jks
             printf 'storeFile=matin-ai-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
               "$MATIN_KEY_STORE_PASSWORD" "$MATIN_KEY_ALIAS" "$MATIN_KEY_PASSWORD" > MatinAIAndroid/keystore.properties
             echo "release keystore restored"
           else
-            echo "no keystore secret — falling back to debug signing"
+            echo "complete release signing secrets not configured — release APK will not be built"
           fi
       - name: Build debug APK
         working-directory: MatinAIAndroid
@@ -65,7 +65,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
       - name: Build signed release APK
-        if: env.MATIN_KEYSTORE_B64 != ''
+        if: env.MATIN_KEYSTORE_B64 != '' && env.MATIN_KEY_STORE_PASSWORD != '' && env.MATIN_KEY_ALIAS != '' && env.MATIN_KEY_PASSWORD != ''
         working-directory: MatinAIAndroid
         run: ./gradlew assembleRelease --no-daemon --stacktrace
       - uses: actions/upload-artifact@v4
