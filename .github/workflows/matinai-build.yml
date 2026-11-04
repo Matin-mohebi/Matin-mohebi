@@ -25,6 +25,11 @@ jobs:
   # ---------------- Android APK ----------------
   android:
     runs-on: ubuntu-latest
+    env:
+      MATIN_KEYSTORE_B64: ${{ secrets.MATIN_KEYSTORE_B64 }}
+      MATIN_KEY_STORE_PASSWORD: ${{ secrets.MATIN_KEY_STORE_PASSWORD }}
+      MATIN_KEY_ALIAS: ${{ secrets.MATIN_KEY_ALIAS }}
+      MATIN_KEY_PASSWORD: ${{ secrets.MATIN_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -49,11 +54,15 @@ jobs:
           else
             echo "no keystore secret — falling back to debug signing"
           fi
-      - name: Build APKs
+      - name: Build debug APK
         working-directory: MatinAIAndroid
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Build signed release APK
+        if: env.MATIN_KEYSTORE_B64 != ''
+        working-directory: MatinAIAndroid
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: MatinAI-APK
