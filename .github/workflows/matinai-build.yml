@@ -1,6 +1,11 @@
 name: MatinAI Build & Deploy
 
 on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "MatinAIAndroid/**"
+      - ".github/workflows/matinai-build.yml"
   push:
     branches: [ main ]
     tags: [ 'v*' ]
@@ -174,6 +179,7 @@ jobs:
           path: MatinAIWeb
 
   deploy-pages:
+    if: github.event_name != 'pull_request'
     needs: web
     runs-on: ubuntu-latest
     environment:
