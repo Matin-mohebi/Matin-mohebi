@@ -379,7 +379,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
         error = ""
     }
 
-    suspend fun streamOnce(cand: Cand, history: JSONArray, idx: Int, acc: StringBuilder): String {
+    suspend fun streamOnce(cand: Cand, history: JSONArray, acc: StringBuilder): String {
         val body = JSONObject()
             .put("model", cand.model)
             .put("messages", history)
@@ -414,9 +414,6 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                             ?.optJSONObject("delta")?.optString("content")
                         if (!delta.isNullOrEmpty()) {
                             acc.append(delta)
-                            if (idx < messages.size) {
-                                messages[idx] = ChatMessage("assistant", acc.toString())
-                            }
                         }
                     } catch (_: Exception) { }
                 }
@@ -450,7 +447,7 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                     var lastErr: Exception? = null
                     for (cand in chain.take(5)) {
                         try {
-                            val answer = streamOnce(cand, history, idx, StringBuilder())
+                            val answer = streamOnce(cand, history, StringBuilder())
                             answered = answer to (providerLabelOf(cand.baseUrl) + " · " + cand.model)
                             lastErr = null
                             break
