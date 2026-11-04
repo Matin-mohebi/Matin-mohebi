@@ -68,12 +68,19 @@ jobs:
         if: env.MATIN_KEYSTORE_B64 != '' && env.MATIN_KEY_STORE_PASSWORD != '' && env.MATIN_KEY_ALIAS != '' && env.MATIN_KEY_PASSWORD != ''
         working-directory: MatinAIAndroid
         run: ./gradlew assembleRelease --no-daemon --stacktrace
-      - uses: actions/upload-artifact@v4
+      - name: Upload debug APK for testing
+        uses: actions/upload-artifact@v4
         with:
-          name: MatinAI-APK
-          path: |
-            MatinAIAndroid/app/build/outputs/apk/release/*.apk
-            MatinAIAndroid/app/build/outputs/apk/debug/*.apk
+          name: MatinAI-debug-APK
+          path: MatinAIAndroid/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload signed release APK
+        if: env.MATIN_KEYSTORE_B64 != '' && env.MATIN_KEY_STORE_PASSWORD != '' && env.MATIN_KEY_ALIAS != '' && env.MATIN_KEY_PASSWORD != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: MatinAI-release-APK
+          path: MatinAIAndroid/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -204,7 +211,11 @@ jobs:
       - name: Collect files
         run: |
           mkdir out
-          find artifacts/MatinAI-APK -name "*.apk" -exec cp {} out/ \; 2>/dev/null || true
+          if ! find artifacts/MatinAI-release-APK -type f -name "*.apk" -print -quit | grep -q .; then
+            echo "No signed release APK found. Refusing to publish a debug or unsigned APK as a release."
+            exit 1
+          fi
+          find artifacts/MatinAI-release-APK -type f -name "*.apk" -exec cp {} out/ \;
           cp artifacts/MatinAI-Desktop/* out/ 2>/dev/null || true
           cp artifacts/MatinAI-Desktop-mac/* out/ 2>/dev/null || true
           cp artifacts/MatinAI-iOS/*.ipa out/ 2>/dev/null || true
