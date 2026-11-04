@@ -725,7 +725,11 @@ private fun MatinAiApp(prefs: android.content.SharedPreferences) {
                                     Text("🧠 " + message.via, color = Color(0xFF8F96B3), fontSize = 9.sp)
                                 }
                                 Spacer(Modifier.height(4.dp))
-                                Text(message.text, color = Color.White, fontSize = 15.sp)
+                                if (message.role == "assistant" && message.text.isBlank() && busy) {
+                                    Text("در حال آماده‌سازی پاسخ…", color = Color.LightGray, fontSize = 13.sp)
+                                } else {
+                                    Text(message.text, color = Color.White, fontSize = 15.sp)
+                                }
                                 if (message.role == "assistant" && message.text.isNotBlank()) {
                                     TextButton(
                                         onClick = { clipboardManager.setText(AnnotatedString(message.text)) },
